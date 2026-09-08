@@ -1,6 +1,6 @@
 {
-  "name": "create-app-start",
-  "version": "1.1.0",
+  "name": "create-readyframe",
+  "version": "1.2.0",
   "description": "Scaffold a production-minded monorepo (Vite React + Fastify or FastAPI)",
   "type": "module",
   "license": "MIT",
@@ -8,7 +8,7 @@
     "node": ">=22"
   },
   "bin": {
-    "create-app-start": "./dist/index.js"
+    "create-readyframe": "./dist/index.js"
   },
   "files": ["dist", "templates", "README.md"],
   "exports": {
@@ -19,14 +19,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/M-WRI/create-app-start.git",
-    "directory": "packages/create-app"
+    "url": "git+https://github.com/M-WRI/readyframe.git",
+    "directory": "packages/create-readyframe"
   },
-  "homepage": "https://github.com/M-WRI/create-app-start#readme",
+  "homepage": "https://github.com/M-WRI/readyframe#readme",
   "bugs": {
-    "url": "https://github.com/M-WRI/create-app-start/issues"
+    "url": "https://github.com/M-WRI/readyframe/issues"
   },
-  "keywords": ["create-app", "scaffold", "monorepo", "vite", "fastify", "fastapi", "turborepo"],
+  "keywords": ["readyframe", "create-app", "scaffold", "monorepo", "vite", "fastify", "fastapi", "turborepo"],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "bundle:templates": "node ./scripts/bundle-templates.mjs",

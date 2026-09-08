@@ -29,7 +29,7 @@ Keep the quality bar enforceable in scripts and CI—not by rewriting app featur
 ## Rules
 
 - Prefer fixing the underlying package over weakening CI  
-- Generated consumer apps must not retain generator-only jobs (respect create-app rewrite behavior)  
+- Generated consumer apps must not retain generator-only jobs (respect create-readyframe rewrite behavior)  
 - Production web sourcemaps stay disabled  
 
 ## Fail rubric (hard)

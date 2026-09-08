@@ -1,13 +1,13 @@
-# create-app-start
+# create-readyframe
 
-Scaffold a production-minded monorepo app (Vite React + Fastify or FastAPI) from the [create-app-start](https://github.com/M-WRI/create-app-start) templates.
+Scaffold a production-minded monorepo app (Vite React + Fastify or FastAPI) from the [readyframe](https://github.com/M-WRI/readyframe) templates.
 
 ## Usage
 
 ```bash
-npx create-app-start@latest my-app
+npx create-readyframe@latest my-app
 # or non-interactive:
-npx create-app-start@latest my-app --backend node --locales de --deploy paas --yes
+npx create-readyframe@latest my-app --backend node --locales de --deploy paas --yes
 ```
 
 Requires **Node.js 22+**. After scaffold: `cp .env.example .env`, `pnpm install`, Postgres, then API + web `dev` scripts printed by the CLI.
@@ -26,4 +26,4 @@ Requires **Node.js 22+**. After scaffold: `cp .env.example .env`, `pnpm install`
 
 ## Monorepo development
 
-In the generator repo: `pnpm create-app` (uses live `templates/`). Publish packs a copy of `templates/` into this package via `prepack`; `postpack` removes that bundled copy so local lint stays clean (`templates/**` is also eslint-ignored).
+In the generator repo: `pnpm create-readyframe` (uses live `templates/`). Publish packs a copy of `templates/` into this package via `prepack`; `postpack` removes that bundled copy so local lint stays clean (`templates/**` is also eslint-ignored).

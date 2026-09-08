@@ -60,7 +60,7 @@ describe("locales", () => {
 describe("generateApp", () => {
   it("scaffolds a node app from templates", () => {
     const templatesRoot = resolveTemplatesRoot();
-    const parent = mkdtempSync(join(tmpdir(), "create-app-"));
+    const parent = mkdtempSync(join(tmpdir(), "create-readyframe-"));
     temps.push(parent);
     const targetDir = join(parent, "demo-app");
 
@@ -82,7 +82,7 @@ describe("generateApp", () => {
     expect(existsSync(join(targetDir, "apps", "api-python"))).toBe(false);
     expect(existsSync(join(targetDir, "packages", "i18n", "src", "locales", "de.ts"))).toBe(true);
     expect(existsSync(join(targetDir, ".env.example"))).toBe(true);
-    expect(existsSync(join(targetDir, ".asa-scaffold.json"))).toBe(true);
+    expect(existsSync(join(targetDir, ".readyframe-scaffold.json"))).toBe(true);
 
     const pkg = JSON.parse(readFileSync(join(targetDir, "package.json"), "utf8")) as {
       name: string;
@@ -90,7 +90,7 @@ describe("generateApp", () => {
     };
     expect(pkg.name).toBe("demo-app");
     expect(pkg.scripts["templates:sync"]).toBeUndefined();
-    expect(pkg.scripts["create-app"]).toBeUndefined();
+    expect(pkg.scripts["create-readyframe"]).toBeUndefined();
     expect(pkg.scripts["check:contracts"]).not.toContain("api-python");
 
     const ci = readFileSync(join(targetDir, ".github", "workflows", "ci.yml"), "utf8");
@@ -123,7 +123,7 @@ describe("generateApp", () => {
 
   it("scaffolds pt-BR locale with a valid identifier", () => {
     const templatesRoot = resolveTemplatesRoot();
-    const parent = mkdtempSync(join(tmpdir(), "create-app-"));
+    const parent = mkdtempSync(join(tmpdir(), "create-readyframe-"));
     temps.push(parent);
     const targetDir = join(parent, "pt-app");
 
@@ -157,7 +157,7 @@ describe("generateApp", () => {
 
   it("scaffolds zh-Hant-TW locale", () => {
     const templatesRoot = resolveTemplatesRoot();
-    const parent = mkdtempSync(join(tmpdir(), "create-app-"));
+    const parent = mkdtempSync(join(tmpdir(), "create-readyframe-"));
     temps.push(parent);
     const targetDir = join(parent, "zh-app");
 
@@ -186,7 +186,7 @@ describe("generateApp", () => {
 
   it("collapses duplicate locales", () => {
     const templatesRoot = resolveTemplatesRoot();
-    const parent = mkdtempSync(join(tmpdir(), "create-app-"));
+    const parent = mkdtempSync(join(tmpdir(), "create-readyframe-"));
     temps.push(parent);
     const targetDir = join(parent, "dup-app");
 
@@ -216,7 +216,7 @@ describe("generateApp", () => {
 
   it("rejects traversal and junk locales before writing anything", () => {
     const templatesRoot = resolveTemplatesRoot();
-    const parent = mkdtempSync(join(tmpdir(), "create-app-"));
+    const parent = mkdtempSync(join(tmpdir(), "create-readyframe-"));
     temps.push(parent);
     const before = new Set(readdirSync(parent));
 
@@ -244,7 +244,7 @@ describe("generateApp", () => {
 
   it("scaffolds a fastapi app", () => {
     const templatesRoot = resolveTemplatesRoot();
-    const parent = mkdtempSync(join(tmpdir(), "create-app-"));
+    const parent = mkdtempSync(join(tmpdir(), "create-readyframe-"));
     temps.push(parent);
     const targetDir = join(parent, "py-app");
 

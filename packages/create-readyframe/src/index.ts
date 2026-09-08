@@ -24,8 +24,8 @@ function normalizeArgv(argv: string[]): string[] {
 
 const main = defineCommand({
   meta: {
-    name: "create-app-start",
-    description: "Scaffold a monorepo app from app-start-architecture templates",
+    name: "create-readyframe",
+    description: "Scaffold a monorepo app from readyframe templates",
   },
   args: {
     name: {
@@ -61,7 +61,7 @@ const main = defineCommand({
     },
   },
   async run({ args }) {
-    p.intro("create-app-start");
+    p.intro("create-readyframe");
 
     let name = args.name ? assertValidName(String(args.name)) : "";
     let backend = (args.backend as Backend | undefined) ?? undefined;

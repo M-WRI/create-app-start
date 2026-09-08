@@ -79,7 +79,7 @@ function syncInto(destRoot) {
   rsync(join(root, ".cursor"), join(base, ".cursor"));
   rsync(join(root, "docker"), join(base, "docker"));
   rsync(join(root, "docs"), join(base, "docs"));
-  rsync(join(root, "packages"), join(base, "packages"), ["create-app"]);
+  rsync(join(root, "packages"), join(base, "packages"), ["create-readyframe"]);
 
   // Generated apps land under apps/ — templates carry only the app trees.
   rsync(join(root, "apps/web"), join(destRoot, "web"));
@@ -89,7 +89,7 @@ function syncInto(destRoot) {
 
 function main() {
   if (checkOnly) {
-    const staging = mkdtempSync(join(tmpdir(), "asa-templates-"));
+    const staging = mkdtempSync(join(tmpdir(), "readyframe-templates-"));
     try {
       syncInto(staging);
       const diff = spawnSync(

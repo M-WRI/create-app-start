@@ -65,7 +65,7 @@ jobs:
         continue-on-error: true
 
   generator:
-    name: create-app-smoke (${{ matrix.backend }})
+    name: create-readyframe-smoke (${{ matrix.backend }})
     runs-on: ubuntu-latest
     timeout-minutes: 25
     strategy:
@@ -102,12 +102,12 @@ jobs:
       - name: Install generator workspace
         run: pnpm install --frozen-lockfile
 
-      - name: Pack create-app-start (bundled templates)
+      - name: Pack create-readyframe (bundled templates)
         if: matrix.backend == 'node'
-        working-directory: packages/create-app
+        working-directory: packages/create-readyframe
         run: |
           pnpm pack --pack-destination "$RUNNER_TEMP"
-          TGZ=$(ls "$RUNNER_TEMP"/create-app-start-*.tgz | head -1)
+          TGZ=$(ls "$RUNNER_TEMP"/create-readyframe-*.tgz | head -1)
           test -n "$TGZ"
           tar -tzf "$TGZ" | grep -q 'package/templates/base/package.json'
           echo "PACKED_TGZ=$TGZ" >> "$GITHUB_ENV"
@@ -115,14 +115,14 @@ jobs:
       - name: Scaffold from packed tarball (npx path)
         if: matrix.backend == 'node'
         run: |
-          npm install "$PACKED_TGZ" --prefix "$RUNNER_TEMP/create-app-cli"
-          "$RUNNER_TEMP/create-app-cli/node_modules/.bin/create-app-start" npx-smoke \
+          npm install "$PACKED_TGZ" --prefix "$RUNNER_TEMP/create-readyframe-cli"
+          "$RUNNER_TEMP/create-readyframe-cli/node_modules/.bin/create-readyframe" npx-smoke \
             --backend node --deploy ci-only --yes --outDir "$RUNNER_TEMP"
           test -f "$RUNNER_TEMP/npx-smoke/package.json"
 
       - name: Scaffold app (non-interactive)
         run: |
-          pnpm create-app -- gen-smoke \
+          pnpm create-readyframe -- gen-smoke \
             --backend ${{ matrix.backend }} \
             --locales de \
             --deploy ci-only \

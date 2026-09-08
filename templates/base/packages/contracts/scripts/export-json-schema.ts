@@ -18,7 +18,7 @@ mkdirSync(outDir, { recursive: true });
 
 const document = {
   $schema: "http://json-schema.org/draft-07/schema#",
-  $id: "https://app-start-architecture.local/schemas/contracts.json",
+  $id: "https://readyframe.local/schemas/contracts.json",
   title: "@repo/contracts",
   description:
     "Source of truth for ApiError, auth DTOs, and RBAC. Python Pydantic models must match these schemas.",

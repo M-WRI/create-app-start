@@ -25,6 +25,6 @@ templates/**/.venv
 templates/**/coverage
 templates/**/.coverage
 templates/**/.coverage.*
-# Bundled only for npm pack / publish (see packages/create-app prepack)
-packages/create-app/templates
+# Bundled only for npm pack / publish (see packages/create-readyframe prepack)
+packages/create-readyframe/templates
 *.tgz

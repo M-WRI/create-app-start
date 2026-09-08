@@ -41,8 +41,8 @@ Prefer:
 2. Mirror behavior on **both** `apps/api` and `apps/api-python` when changing auth/health  
 3. i18n keys for UI; httpOnly cookies for auth  
 4. Keep `pnpm check` and the Python package scripts green  
-5. Scaffold apps with `pnpm create-app` (uses `INIT_CWD` so the project lands where you ran the command); published CLI is `npx create-app-start@latest`
+5. Scaffold apps with `pnpm create-readyframe` (uses `INIT_CWD` so the project lands where you ran the command); published CLI is `npx create-readyframe@latest`
 
 Local APIs share Postgres schema; run one backend at a time on `API_PORT`.
 
-After changing apps/packages/root config, run `pnpm templates:sync` so `templates/` stay aligned (`pnpm templates:check` / CI enforce this). Do not nest scaffolds under `packages/create-app/`.
+After changing apps/packages/root config, run `pnpm templates:sync` so `templates/` stay aligned (`pnpm templates:check` / CI enforce this). Do not nest scaffolds under `packages/create-readyframe/`.

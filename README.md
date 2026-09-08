@@ -1,8 +1,8 @@
-# create-app-start
+# readyframe
 
 Production-minded monorepo starter **and** app generator: Vite React web, dual backends (Fastify + FastAPI), shared contracts/UI/auth/i18n, Cursor agents/rules, and CI quality gates toward ~9/10.
 
-**Repository:** [github.com/M-WRI/create-app-start](https://github.com/M-WRI/create-app-start)
+**Repository:** [github.com/M-WRI/readyframe](https://github.com/M-WRI/readyframe)
 
 ## Prerequisites
 
@@ -15,11 +15,11 @@ Production-minded monorepo starter **and** app generator: Vite React web, dual b
 
 ## How to: run this repo (downloaded / cloned)
 
-If you cloned **this** project and want to develop it as your app, you do **not** need `create-app`. Install and run:
+If you cloned **this** project and want to develop it as your app, you do **not** need `create-readyframe`. Install and run:
 
 ```bash
-git clone git@github.com:M-WRI/create-app-start.git
-cd create-app-start
+git clone git@github.com:M-WRI/readyframe.git
+cd readyframe
 cp .env.example .env
 pnpm install
 docker compose up -d    # or point DATABASE_URL at your Postgres
@@ -51,25 +51,25 @@ Full gate: `pnpm check`.
 
 Use this when you want a **separate** project folder (not nested under `apps/` of this repo). Prefer scaffolding as a **sibling** directory.
 
-### A. From this repo (`pnpm create-app`)
+### A. From this repo (`pnpm create-readyframe`)
 
 ```bash
-cd create-app-start
+cd readyframe
 pnpm install
 
 # Interactive
-pnpm create-app --outDir ..
+pnpm create-readyframe --outDir ..
 
 # Non-interactive (sibling folder ../my-app)
-pnpm create-app -- my-app --backend node --locales de --deploy paas --yes --outDir ..
+pnpm create-readyframe -- my-app --backend node --locales de --deploy paas --yes --outDir ..
 ```
 
 ### B. From npm (`npx`) — after the CLI is published
 
 ```bash
-npx create-app-start@latest my-app
+npx create-readyframe@latest my-app
 # Non-interactive:
-npx create-app-start@latest my-app --backend node --locales de --deploy paas --yes
+npx create-readyframe@latest my-app --backend node --locales de --deploy paas --yes
 ```
 
 ### After scaffold
@@ -93,7 +93,7 @@ pnpm --filter @repo/web dev
 | `--locales` | extra locales, comma-separated | none |
 | `--deploy` | `paas` \| `docker-compose` \| `ci-only` | prompted / `paas` with `--yes` |
 | `--yes` | skip prompts (needs name + `--backend`) | off |
-| `--outDir` | parent directory for the project | cwd (`INIT_CWD` for `pnpm create-app`) |
+| `--outDir` | parent directory for the project | cwd (`INIT_CWD` for `pnpm create-readyframe`) |
 
 Generated apps include **one** backend only, plus `.cursor/rules` and specialized agents.
 
@@ -103,8 +103,9 @@ Generated apps include **one** backend only, plus `.cursor/rules` and specialize
 
 | Version | Date | Key features |
 |---------|------|----------------|
+| **1.2.0** | 2026-09-09 | Rebrand to **readyframe** / `create-readyframe` (GitHub + npm) |
 | **1.1.0** | 2026-09-08 | Quality hardening: credential-bound idempotent register, atomic register/refresh transactions, ApiError-shaped HTTP (429/404/405/400), semantic contract schema sync (UUID/date-time AuthUser), auth UI field/network errors + ≥80% coverage scope, isolated Postgres HTTP/DB regression tests, strict BCP-47 locale validation, create-app TS/lint isolation from packed templates, fail-rubric ↔ CI mapping, single-track generated rules/agents |
-| **1.0.0** | 2026-09-08 | Initial release: Vite/React web, Fastify+Prisma and FastAPI+SQLModel tracks, `@repo/contracts` ApiError + JSON Schema, httpOnly cookie auth + RBAC + Idempotency-Key, `@repo/ui` / i18n / auth packages, CI + coverage floors + axe, `create-app-start` CLI with bundled templates, Cursor fail-rubric + parallel agents |
+| **1.0.0** | 2026-09-08 | Initial release: Vite/React web, Fastify+Prisma and FastAPI+SQLModel tracks, `@repo/contracts` ApiError + JSON Schema, httpOnly cookie auth + RBAC + Idempotency-Key, `@repo/ui` / i18n / auth packages, CI + coverage floors + axe, CLI with bundled templates, Cursor fail-rubric + parallel agents |
 
 ---
 
@@ -119,7 +120,7 @@ Generated apps include **one** backend only, plus `.cursor/rules` and specialize
 | `packages/ui` | Tokens + seed atoms |
 | `packages/i18n` | Auth/error catalogs |
 | `packages/auth` | Cookie client, forms, guards, axe smoke |
-| `packages/create-app` | Published as `create-app-start` (`npx` / `pnpm create-app`) |
+| `packages/create-readyframe` | Published as `create-readyframe` (`npx` / `pnpm create-readyframe`) |
 | `templates/*` | Folded copies for the generator |
 | `.cursor/agents/` | One-purpose subagents for parallel work |
 
@@ -127,7 +128,7 @@ Generated apps include **one** backend only, plus `.cursor/rules` and specialize
 
 | Script | Purpose |
 |--------|---------|
-| `pnpm create-app` | Wizard / flags → new app from `templates/` |
+| `pnpm create-readyframe` | Wizard / flags → new app from `templates/` |
 | `pnpm check` | format + lint + typecheck + test + axe + build + contract + templates |
 | `pnpm templates:sync` / `templates:check` | Rewrite / verify `templates/` vs working tree |
 | `pnpm test:a11y` | axe smoke on auth forms |
@@ -145,7 +146,7 @@ Defaults: httpOnly cookies only; `/api/v1`; request-id; auth rate limits; Idempo
 
 ```bash
 pnpm templates:sync
-pnpm --filter create-app-start pack
+pnpm --filter create-readyframe pack
 npm login
-pnpm --filter create-app-start publish --access public
+pnpm --filter create-readyframe publish --access public
 ```

@@ -52,7 +52,7 @@ function rewriteRootPackageJson(targetDir: string, options: GenerateOptions): vo
   };
   pkg.name = options.name;
 
-  const dropScripts = new Set(["templates:sync", "templates:check", "create-app"]);
+  const dropScripts = new Set(["templates:sync", "templates:check", "create-readyframe"]);
   const checkScriptKey = "check";
   const scripts = Object.fromEntries(
     Object.entries(pkg.scripts ?? {}).filter(([key]) => !dropScripts.has(key)),
@@ -98,7 +98,7 @@ Prefer:
 3. Keep \`pnpm check\` green
 4. Run the API on \`API_PORT\` (web proxies \`/api\`)
 
-See README for setup. This app does not include the \`create-app\` generator or template-sync tooling.
+See README for setup. This app does not include the \`create-readyframe\` generator or template-sync tooling.
 `;
 
   writeFileSync(path, `${body}\n`);
@@ -157,7 +157,7 @@ function writeProjectReadme(targetDir: string, options: GenerateOptions): void {
 
   const body = `# ${options.name}
 
-Generated from [app-start-architecture](https://github.com/M-WRI/create-app-start) templates.
+Generated from [readyframe](https://github.com/M-WRI/readyframe) templates.
 
 - **Backend:** ${apiLabel}
 - **Default locale:** \`${options.defaultLocale}\`${
@@ -187,7 +187,7 @@ See \`docs/deploy.md\` for ${options.deploy} notes.
 
 function writeScaffoldMeta(targetDir: string, options: GenerateOptions): void {
   writeFileSync(
-    join(targetDir, ".asa-scaffold.json"),
+    join(targetDir, ".readyframe-scaffold.json"),
     `${JSON.stringify(
       {
         name: options.name,
