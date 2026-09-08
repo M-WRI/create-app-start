@@ -1,6 +1,6 @@
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { writeLocaleStubs } from "./locales.js";
+import { validateLocales, writeLocaleStubs } from "./locales.js";
 import type { GenerateOptions } from "./options.js";
 import { resolveTemplatesRoot } from "./paths.js";
 
@@ -33,10 +33,7 @@ function rewriteGithubCi(targetDir: string, backend: GenerateOptions["backend"])
   if (!existsSync(path)) return;
 
   let yaml = readFileSync(path, "utf8");
-  yaml = yaml.replace(
-    /\n {2}generator:[\s\S]*?(?=\n {2}[a-zA-Z]|$)/,
-    "\n",
-  );
+  yaml = yaml.replace(/\n {2}generator:[\s\S]*?(?=\n {2}[a-zA-Z]|$)/, "\n");
   yaml = yaml.replace(
     /\n {6}- name: Templates in sync with working tree\n {8}run: pnpm templates:check\n/,
     "\n",
@@ -55,20 +52,21 @@ function rewriteRootPackageJson(targetDir: string, options: GenerateOptions): vo
   };
   pkg.name = options.name;
 
-  const scripts = { ...(pkg.scripts ?? {}) };
-  delete scripts["templates:sync"];
-  delete scripts["templates:check"];
-  delete scripts["create-app"];
+  const dropScripts = new Set(["templates:sync", "templates:check", "create-app"]);
+  const checkScriptKey = "check";
+  const scripts = Object.fromEntries(
+    Object.entries(pkg.scripts ?? {}).filter(([key]) => !dropScripts.has(key)),
+  );
 
   if (options.backend === "node") {
     scripts["check:contracts"] =
       "pnpm contracts:schema && git diff --exit-code packages/contracts/schemas/contracts.json";
-    scripts["check"] =
+    scripts[checkScriptKey] =
       "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm test:a11y && pnpm build && pnpm check:contracts";
   } else {
     scripts["check:contracts"] =
       "pnpm contracts:schema && git diff --exit-code packages/contracts/schemas/contracts.json && pnpm --filter @repo/api-python schema:sync";
-    scripts["check"] =
+    scripts[checkScriptKey] =
       "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm test:a11y && pnpm build && pnpm check:contracts";
   }
 
@@ -76,8 +74,82 @@ function rewriteRootPackageJson(targetDir: string, options: GenerateOptions): vo
   writeFileSync(path, `${JSON.stringify(pkg, null, 2)}\n`);
 }
 
+/** Generated apps are single-backend — drop dual-track and generator-repo instructions. */
+function rewriteAgentsMd(targetDir: string, backend: GenerateOptions["backend"]): void {
+  const path = join(targetDir, "AGENTS.md");
+  if (!existsSync(path)) return;
+
+  const apiTrack = backend === "node" ? "`apps/api` (Fastify)" : "`apps/api-python` (FastAPI)";
+
+  const body = `# Agent notes
+
+This generated app follows \`.cursor/rules/\` (especially **fail-rubric**).
+
+**Backend:** single track only — ${apiTrack}. There is no second API to keep in parity.
+
+## Subagents (\`.cursor/agents/\`)
+
+Use the project agents for parallel work: \`frontend\`, \`backend\`, \`testing\`, plus extras (\`contracts\`, \`auth-security\`, \`i18n\`, \`ci-quality\`, \`reviewer\`) as needed.
+
+Prefer:
+
+1. Contracts first (\`@repo/contracts\`) for API/error changes
+2. i18n keys for UI; httpOnly cookies for auth
+3. Keep \`pnpm check\` green
+4. Run the API on \`API_PORT\` (web proxies \`/api\`)
+
+See README for setup. This app does not include the \`create-app\` generator or template-sync tooling.
+`;
+
+  writeFileSync(path, `${body}\n`);
+}
+
+/** Generated apps include one API track — rewrite backend rule to match. */
+function rewriteBackendRule(targetDir: string, backend: GenerateOptions["backend"]): void {
+  const path = join(targetDir, ".cursor", "rules", "backend.mdc");
+  if (!existsSync(path)) return;
+
+  const isNode = backend === "node";
+  const trackLabel = isNode ? "Fastify (`apps/api`)" : "FastAPI (`apps/api-python`)";
+  const globs = isNode ? "apps/api/**/*.{ts,js}" : "apps/api-python/**/*.py";
+  const stackHint = isNode ? "Prisma" : "SQLModel";
+
+  const body = `---
+description: Backend modular layers for ${isNode ? "Fastify" : "FastAPI"}
+globs: ${globs}
+alwaysApply: false
+---
+
+# Backend module layers
+
+This generated app has **one** API track: ${trackLabel}. Dual-backend parity does not apply.
+
+Keep layers separate for non-trivial modules:
+
+1. **router** — HTTP wiring, status codes, cookies, rate-limit annotations
+2. **controller/handlers** — parse input, call service, map response (thin)
+3. **service** — business logic (auth, hashing, token issue, idempotency)
+4. **model/store** — persistence adapters (${stackHint})
+
+Trivial one-liner handlers may call a service directly; do not invent empty controller files for ceremony.
+
+## API surface
+
+- All routes under \`/api/v1/...\`
+- Shared behavior: health, auth register/login/logout/refresh/me
+- Emit \`x-request-id\`; redact secrets in logs
+- Global rate limit + stricter limits on login/register
+- Helmet/CSP security headers on responses
+
+Stay aligned with \`@repo/contracts\`. Prefer updating contracts first, then this API track.
+`;
+
+  writeFileSync(path, `${body}\n`);
+}
+
 function writeProjectReadme(targetDir: string, options: GenerateOptions): void {
-  const apiLabel = options.backend === "node" ? "Fastify (`apps/api`)" : "FastAPI (`apps/api-python`)";
+  const apiLabel =
+    options.backend === "node" ? "Fastify (`apps/api`)" : "FastAPI (`apps/api-python`)";
   const apiDev =
     options.backend === "node"
       ? "pnpm --filter @repo/api db:migrate\npnpm --filter @repo/api dev"
@@ -144,6 +216,10 @@ export function generateApp(
     throw new Error(`Target directory already exists: ${options.targetDir}`);
   }
 
+  // Fail fast on locales before any copy — no partial project on invalid tags
+  const defaultLocale = validateLocales([options.defaultLocale])[0] ?? "en";
+  const extraLocales = validateLocales(options.extraLocales);
+
   const base = join(templatesRoot, "base");
   const web = join(templatesRoot, "web");
   const apiTemplate =
@@ -157,6 +233,12 @@ export function generateApp(
     }
   }
 
+  const normalizedOptions: GenerateOptions = {
+    ...options,
+    defaultLocale,
+    extraLocales,
+  };
+
   mkdirSync(options.targetDir, { recursive: true });
   try {
     copyDir(base, options.targetDir);
@@ -169,15 +251,17 @@ export function generateApp(
     copyDir(apiTemplate, backendAppDir);
 
     // Drop the unused API Dockerfile companion is fine to leave; prune meta-only scripts.
-    rewriteRootPackageJson(options.targetDir, options);
-    rewriteGithubCi(options.targetDir, options.backend);
-    writeProjectReadme(options.targetDir, options);
-    writeScaffoldMeta(options.targetDir, options);
+    rewriteRootPackageJson(options.targetDir, normalizedOptions);
+    rewriteGithubCi(options.targetDir, normalizedOptions.backend);
+    rewriteAgentsMd(options.targetDir, normalizedOptions.backend);
+    rewriteBackendRule(options.targetDir, normalizedOptions.backend);
+    writeProjectReadme(options.targetDir, normalizedOptions);
+    writeScaffoldMeta(options.targetDir, normalizedOptions);
 
     writeLocaleStubs({
       i18nLocalesDir: join(options.targetDir, "packages", "i18n", "src", "locales"),
-      defaultLocale: options.defaultLocale,
-      extraLocales: options.extraLocales,
+      defaultLocale: normalizedOptions.defaultLocale,
+      extraLocales: normalizedOptions.extraLocales,
     });
 
     // Ensure .env.example exists (from base)

@@ -3,10 +3,11 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
+const createAppTemplatesKey = "CREATE_APP_TEMPLATES";
 
 /** Walk upward until `templates/base` exists. */
 export function resolveTemplatesRoot(startDir = here): string {
-  const fromEnv = process.env["CREATE_APP_TEMPLATES"];
+  const fromEnv = process.env[createAppTemplatesKey];
   if (fromEnv) {
     const resolved = resolve(fromEnv);
     if (existsSync(join(resolved, "base"))) {
@@ -32,7 +33,5 @@ export function resolveTemplatesRoot(startDir = here): string {
     return bundled;
   }
 
-  throw new Error(
-    "Could not find templates/. Run from the monorepo or set CREATE_APP_TEMPLATES.",
-  );
+  throw new Error("Could not find templates/. Run from the monorepo or set CREATE_APP_TEMPLATES.");
 }

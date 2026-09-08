@@ -1,4 +1,5 @@
-import { SignInPage, SignUpPage, useLogoutMutation, useMeQuery } from "@repo/auth";
+import { SignInPage, SignUpPage, isAuthApiError, useLogoutMutation, useMeQuery } from "@repo/auth";
+import { translateApiError } from "@repo/i18n";
 import { Button } from "@repo/ui";
 import { useTranslation } from "react-i18next";
 import { Link, Navigate, Route, Routes, useNavigate } from "react-router";
@@ -8,6 +9,13 @@ function HomePage() {
   const meQuery = useMeQuery();
   const logoutMutation = useLogoutMutation();
   const user = meQuery.data?.user;
+  const logoutError = logoutMutation.error
+    ? isAuthApiError(logoutMutation.error)
+      ? translateApiError(t, logoutMutation.error.apiError)
+      : logoutMutation.error instanceof TypeError
+        ? t("errors.common.network")
+        : t("errors.common.internal")
+    : null;
 
   return (
     <main className="mx-auto flex min-h-svh w-full max-w-3xl flex-col gap-6 p-8">
@@ -20,8 +28,11 @@ function HomePage() {
               <Button
                 type="button"
                 variant="outline"
+                disabled={logoutMutation.isPending}
                 onClick={() => {
-                  void logoutMutation.mutateAsync();
+                  void logoutMutation.mutateAsync().catch(() => {
+                    /* surfaced via logoutError alert */
+                  });
                 }}
               >
                 {t("auth.signOutCta")}
@@ -39,6 +50,11 @@ function HomePage() {
           )}
         </nav>
       </header>
+      {logoutError ? (
+        <p role="alert" className="text-sm text-destructive">
+          {logoutError}
+        </p>
+      ) : null}
       <p className="text-muted-foreground">{t("home.blurb")}</p>
     </main>
   );

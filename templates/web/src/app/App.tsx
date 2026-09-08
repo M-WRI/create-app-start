@@ -10,7 +10,7 @@ type AppProps = {
 
 export function App({ i18n }: AppProps) {
   return (
-    <AppErrorBoundary>
+    <AppErrorBoundary i18n={i18n}>
       <AppProviders i18n={i18n}>
         <BrowserRouter>
           <AppRouter />

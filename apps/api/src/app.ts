@@ -2,6 +2,7 @@ import cookie from "@fastify/cookie";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
+import { AppError } from "@repo/contracts";
 import Fastify from "fastify";
 import {
   type ZodTypeProvider,
@@ -9,18 +10,29 @@ import {
   validatorCompiler,
 } from "fastify-type-provider-zod";
 import type { Env } from "./env.js";
-import { appErrorHandler } from "./lib/errors.js";
+import { appErrorHandler, sendApiError } from "./lib/errors.js";
 import { requestIdPlugin } from "./lib/request-id.js";
 import {
   authIdempotencyModel,
   authRefreshModel,
   authUserModel,
+  createPrismaAuthUnitOfWork,
+  isPrismaUniqueViolation,
 } from "./modules/auth/model/auth-model.js";
 import { createAuthRoutes } from "./modules/auth/router/auth-router.js";
 import { createAuthService } from "./modules/auth/service/auth-service.js";
 import { healthRoutes } from "./modules/health/router/health-router.js";
 
-export async function buildApp(env: Env) {
+export type BuildAppOptions = {
+  rateLimit?: {
+    max?: number;
+    timeWindow?: number | string;
+    /** Per-route limit for login/register (default 20). */
+    authMax?: number;
+  };
+};
+
+export async function buildApp(env: Env, options: BuildAppOptions = {}) {
   const app = Fastify({
     logger: {
       level: env.NODE_ENV === "production" ? "info" : "debug",
@@ -32,6 +44,16 @@ export async function buildApp(env: Env) {
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
   app.setErrorHandler(appErrorHandler);
+  app.setNotFoundHandler((_request, reply) =>
+    sendApiError(
+      reply,
+      new AppError({
+        status: 404,
+        errorCode: "NOT_FOUND",
+        errorMessage: "Not found",
+      }),
+    ),
+  );
 
   await app.register(requestIdPlugin);
   await app.register(cookie);
@@ -48,14 +70,22 @@ export async function buildApp(env: Env) {
     },
   });
   await app.register(rateLimit, {
-    max: 200,
-    timeWindow: "1 minute",
+    max: options.rateLimit?.max ?? 200,
+    timeWindow: options.rateLimit?.timeWindow ?? "1 minute",
+    errorResponseBuilder: (_request, context) =>
+      new AppError({
+        status: 429,
+        errorCode: "RATE_LIMITED",
+        errorMessage: `Rate limit exceeded, retry in ${context.after}`,
+      }),
   });
 
   const authService = createAuthService({
     users: authUserModel,
     refresh: authRefreshModel,
     idempotency: authIdempotencyModel,
+    uow: createPrismaAuthUnitOfWork(),
+    isUniqueViolation: isPrismaUniqueViolation,
     jwtSecret: env.JWT_SECRET,
   });
 
@@ -65,6 +95,10 @@ export async function buildApp(env: Env) {
       service: authService,
       jwtSecret: env.JWT_SECRET,
       cookieSecure: env.COOKIE_SECURE,
+      authRateLimit: {
+        max: options.rateLimit?.authMax ?? 20,
+        timeWindow: options.rateLimit?.timeWindow ?? "1 minute",
+      },
     }),
   );
 

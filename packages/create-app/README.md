@@ -26,4 +26,4 @@ Requires **Node.js 22+**. After scaffold: `cp .env.example .env`, `pnpm install`
 
 ## Monorepo development
 
-In the generator repo: `pnpm create-app` (uses live `templates/`). Publish packs a copy of `templates/` into this package via `prepack`.
+In the generator repo: `pnpm create-app` (uses live `templates/`). Publish packs a copy of `templates/` into this package via `prepack`; `postpack` removes that bundled copy so local lint stays clean (`templates/**` is also eslint-ignored).

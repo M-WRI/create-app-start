@@ -20,6 +20,8 @@ const excludes = [
   ".turbo",
   ".turbo-out",
   "coverage",
+  ".coverage",
+  ".coverage.*",
   ".venv",
   "__pycache__",
   ".pytest_cache",
@@ -92,13 +94,7 @@ function main() {
       syncInto(staging);
       const diff = spawnSync(
         "diff",
-        [
-          "-ru",
-          "--exclude=.DS_Store",
-          "--exclude=README.md",
-          join(root, "templates"),
-          staging,
-        ],
+        ["-ru", "--exclude=.DS_Store", "--exclude=README.md", join(root, "templates"), staging],
         { encoding: "utf8" },
       );
       if (diff.status === 0) {

@@ -20,16 +20,21 @@ export function RequireAuth({ children, fallback = null, loading = null }: Requi
 }
 
 export type RequireRoleProps = RequireAuthProps & {
-  role: UserRole | UserRole[];
+  roles: UserRole | UserRole[];
 };
 
-export function RequireRole({ role, children, fallback = null, loading = null }: RequireRoleProps) {
+export function RequireRole({
+  roles,
+  children,
+  fallback = null,
+  loading = null,
+}: RequireRoleProps) {
   const meQuery = useMeQuery();
   if (meQuery.isLoading) {
     return loading;
   }
   const user = meQuery.data?.user;
-  if (!user || !hasRequiredRole(user.role, role)) {
+  if (!user || !hasRequiredRole(user.role, roles)) {
     return fallback;
   }
   return children;

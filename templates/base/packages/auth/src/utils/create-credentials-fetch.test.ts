@@ -40,7 +40,7 @@ describe("createCredentialsFetch", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
-  it("returns original 401 when refresh fails", async () => {
+  it("returns original 401 when refresh fails with AuthApiError", async () => {
     const refresh = vi.fn().mockRejectedValue(
       new AuthApiError({
         status: 401,
@@ -54,5 +54,34 @@ describe("createCredentialsFetch", () => {
     const wrapped = createCredentialsFetch({ client, fetch: fetchMock });
     const response = await wrapped("/api/v1/things");
     expect(response.status).toBe(401);
+  });
+
+  it("returns original 401 when refresh fails with a network error", async () => {
+    const refresh = vi.fn().mockRejectedValue(new TypeError("Failed to fetch"));
+    const client = { refresh } as unknown as AuthApiClient;
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 401 }));
+    const wrapped = createCredentialsFetch({ client, fetch: fetchMock });
+    const response = await wrapped("/api/v1/things");
+    expect(response.status).toBe(401);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("passes through non-401 responses without refreshing", async () => {
+    const refresh = vi.fn();
+    const client = { refresh } as unknown as AuthApiClient;
+    const fetchMock = vi.fn().mockResolvedValue(new Response("ok", { status: 200 }));
+    const wrapped = createCredentialsFetch({ client, fetch: fetchMock });
+    const response = await wrapped("/api/v1/things");
+    expect(response.status).toBe(200);
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
+  it("reads url from a Request input when deciding refresh eligibility", async () => {
+    const refresh = vi.fn();
+    const client = { refresh } as unknown as AuthApiClient;
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 401 }));
+    const wrapped = createCredentialsFetch({ client, fetch: fetchMock });
+    await wrapped(new Request("http://localhost/api/v1/auth/login"));
+    expect(refresh).not.toHaveBeenCalled();
   });
 });

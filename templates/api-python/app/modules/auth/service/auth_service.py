@@ -6,6 +6,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any, Protocol
 
 from pwdlib import PasswordHash
+from sqlalchemy.exc import IntegrityError
 
 from app.lib.contracts_catalog import ERROR_CODES
 from app.lib.contracts_models import AuthSessionResponse, LoginRequest, RegisterRequest
@@ -26,6 +27,25 @@ def _iso(value: datetime) -> str:
     return value.isoformat() + "Z"
 
 
+def _integrity_constraint(error: IntegrityError) -> str:
+    orig = getattr(error, "orig", None)
+    diag = getattr(orig, "diag", None)
+    constraint = getattr(diag, "constraint_name", None) if diag is not None else None
+    if constraint:
+        return str(constraint)
+    return str(orig or error)
+
+
+def is_email_unique_violation(error: IntegrityError) -> bool:
+    name = _integrity_constraint(error).lower()
+    return "email" in name or 'user_email' in name
+
+
+def is_idempotency_key_unique_violation(error: IntegrityError) -> bool:
+    name = _integrity_constraint(error).lower()
+    return "idempotency" in name or name.endswith("_key_key") or '"key"' in name
+
+
 @dataclass
 class StoredUser:
     id: str
@@ -44,6 +64,7 @@ class AuthUserStore(Protocol):
 class AuthRefreshStore(Protocol):
     def create(self, *, user_id: str, token_hash: str, expires_at: datetime) -> None: ...
     def find_by_hash(self, token_hash: str) -> tuple[str, datetime, StoredUser] | None: ...
+    def consume_by_hash(self, token_hash: str) -> tuple[str, datetime, StoredUser] | None: ...
     def delete_by_hash(self, token_hash: str) -> None: ...
 
 
@@ -79,6 +100,7 @@ class AuthService:
     idempotency_store: AuthIdempotencyStore
     jwt_secret: str
     now: Callable[[], datetime]
+    recover: Callable[[], None] | None = None
 
     def issue_tokens(self, user: StoredUser) -> AuthResult:
         access_token = sign_access_token(
@@ -110,6 +132,29 @@ class AuthService:
             tokens=AuthTokens(access_token=access_token, refresh_token=refresh_token),
         )
 
+    def _replay_idempotent_register(
+        self,
+        stored_body: dict[str, Any],
+        input_data: RegisterRequest,
+    ) -> AuthResult:
+        stored = AuthSessionResponse.model_validate(stored_body)
+        user = self.users.find_by_id(str(stored.user.id))
+        if user is None:
+            raise AppError(
+                status=409,
+                error_code=ERROR_CODES["IDEMPOTENCY_CONFLICT"],
+                error_message="Idempotent replay failed",
+            )
+        email_matches = user.email.lower() == str(input_data.email).lower()
+        password_matches = password_hash.verify(input_data.password, user.password_hash)
+        if not email_matches or not password_matches:
+            raise AppError(
+                status=409,
+                error_code=ERROR_CODES["IDEMPOTENCY_CONFLICT"],
+                error_message="Idempotency key reused with different credentials",
+            )
+        return self.issue_tokens(user)
+
     def register(
         self,
         input_data: RegisterRequest,
@@ -118,15 +163,7 @@ class AuthService:
         if idempotency_key:
             existing = self.idempotency_store.find_by_key(idempotency_key)
             if existing is not None:
-                stored = AuthSessionResponse.model_validate(existing)
-                user = self.users.find_by_id(stored.user.id)
-                if user is None:
-                    raise AppError(
-                        status=409,
-                        error_code=ERROR_CODES["IDEMPOTENCY_CONFLICT"],
-                        error_message="Idempotent replay failed",
-                    )
-                return self.issue_tokens(user)
+                return self._replay_idempotent_register(existing, input_data)
 
         existing_user = self.users.find_by_email(str(input_data.email))
         if existing_user is not None:
@@ -137,19 +174,46 @@ class AuthService:
             )
 
         hashed = password_hash.hash(input_data.password)
-        user = self.users.create(email=str(input_data.email), password_hash=hashed)
-        result = self.issue_tokens(user)
 
-        if idempotency_key:
-            self.idempotency_store.create(
-                key=idempotency_key,
-                method="POST",
-                path="/api/v1/auth/register",
-                status_code=201,
-                response_body=result.session.model_dump(by_alias=True),
-            )
+        try:
+            user = self.users.create(email=str(input_data.email), password_hash=hashed)
+            result = self.issue_tokens(user)
 
-        return result
+            if idempotency_key:
+                self.idempotency_store.create(
+                    key=idempotency_key,
+                    method="POST",
+                    path="/api/v1/auth/register",
+                    status_code=201,
+                    response_body=result.session.model_dump(by_alias=True, mode="json"),
+                )
+
+            return result
+        except IntegrityError as exc:
+            if self.recover is not None:
+                self.recover()
+            if idempotency_key and is_idempotency_key_unique_violation(exc):
+                existing = self.idempotency_store.find_by_key(idempotency_key)
+                if existing is not None:
+                    return self._replay_idempotent_register(existing, input_data)
+                raise AppError(
+                    status=409,
+                    error_code=ERROR_CODES["IDEMPOTENCY_CONFLICT"],
+                    error_message="Idempotent replay failed",
+                ) from exc
+            if is_email_unique_violation(exc):
+                # Concurrent same-key register may surface as email unique after
+                # the winner commits; prefer credential-verified replay.
+                if idempotency_key:
+                    existing = self.idempotency_store.find_by_key(idempotency_key)
+                    if existing is not None:
+                        return self._replay_idempotent_register(existing, input_data)
+                raise AppError(
+                    status=409,
+                    error_code=ERROR_CODES["AUTH_EMAIL_TAKEN"],
+                    error_message="Email already registered",
+                ) from exc
+            raise
 
     def login(self, input_data: LoginRequest) -> AuthResult:
         user = self.users.find_by_email(str(input_data.email))
@@ -213,7 +277,7 @@ class AuthService:
                 error_message="Missing refresh token",
             )
 
-        found = self.refresh_store.find_by_hash(hash_token(refresh_token))
+        found = self.refresh_store.consume_by_hash(hash_token(refresh_token))
         if found is None:
             raise AppError(
                 status=401,
@@ -221,7 +285,7 @@ class AuthService:
                 error_message="Invalid refresh token",
             )
 
-        token_hash, expires_at, user = found
+        _token_hash, expires_at, user = found
         if expires_at.replace(tzinfo=UTC) < self.now().replace(tzinfo=UTC):
             raise AppError(
                 status=401,
@@ -229,7 +293,7 @@ class AuthService:
                 error_message="Invalid refresh token",
             )
 
-        self.refresh_store.delete_by_hash(token_hash)
+        # Replacement refresh is created in the same session/transaction (flush-only stores).
         return self.issue_tokens(user)
 
     def logout(self, refresh_token: str | None) -> None:
@@ -244,6 +308,7 @@ def create_auth_service(
     idempotency: AuthIdempotencyStore,
     jwt_secret: str,
     now: Callable[[], datetime] | None = None,
+    recover: Callable[[], None] | None = None,
 ) -> AuthService:
     return AuthService(
         users=users,
@@ -251,4 +316,5 @@ def create_auth_service(
         idempotency_store=idempotency,
         jwt_secret=jwt_secret,
         now=now or (lambda: datetime.now(UTC).replace(tzinfo=None)),
+        recover=recover,
     )

@@ -34,7 +34,7 @@ class SqlAuthUserStore:
     def create(self, *, email: str, password_hash: str) -> StoredUser:
         user = User(email=email, password_hash=password_hash)
         self._session.add(user)
-        self._session.commit()
+        self._session.flush()
         self._session.refresh(user)
         return _to_stored(user)
 
@@ -47,7 +47,7 @@ class SqlAuthRefreshStore:
         self._session.add(
             RefreshSession(user_id=user_id, token_hash=token_hash, expires_at=expires_at)
         )
-        self._session.commit()
+        self._session.flush()
 
     def find_by_hash(self, token_hash: str) -> tuple[str, datetime, StoredUser] | None:
         session = self._session.exec(
@@ -60,13 +60,29 @@ class SqlAuthRefreshStore:
             return None
         return session.token_hash, session.expires_at, _to_stored(user)
 
+    def consume_by_hash(self, token_hash: str) -> tuple[str, datetime, StoredUser] | None:
+        session = self._session.exec(
+            select(RefreshSession).where(RefreshSession.token_hash == token_hash).with_for_update()
+        ).first()
+        if session is None:
+            return None
+        user = self._session.get(User, session.user_id)
+        if user is None:
+            self._session.delete(session)
+            self._session.flush()
+            return None
+        result = (session.token_hash, session.expires_at, _to_stored(user))
+        self._session.delete(session)
+        self._session.flush()
+        return result
+
     def delete_by_hash(self, token_hash: str) -> None:
         session = self._session.exec(
             select(RefreshSession).where(RefreshSession.token_hash == token_hash)
         ).first()
         if session is not None:
             self._session.delete(session)
-            self._session.commit()
+            self._session.flush()
 
 
 class SqlAuthIdempotencyStore:
@@ -100,4 +116,4 @@ class SqlAuthIdempotencyStore:
                 response_body=response_body,
             )
         )
-        self._session.commit()
+        self._session.flush()

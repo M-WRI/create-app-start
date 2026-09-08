@@ -6,10 +6,42 @@ alwaysApply: false
 
 # Auth security
 
+## Cookies and tokens
+
 - Access + refresh tokens only as **httpOnly** cookies (`access_token`, `refresh_token`)
 - Never store tokens in JS-accessible storage
 - Passwords: argon2; JWT secret min length enforced at API boot
+- Prefer same-origin `/api` proxy so cookies stay simple (`Path=/`, `SameSite=lax` access / `strict` refresh)
+
+## Atomic auth writes
+
+- **Register** must create user + refresh session + idempotency record in **one transaction** (all-or-nothing)
+- **Refresh** must **consume** the presented refresh and **reissue** the new pair in **one transaction** (single winner under concurrency)
+- Non-atomic multi-step writes that can leave orphan users, dangling sessions, or replay gaps = fail
+
+## Idempotency
+
+- `Idempotency-Key` on `POST /api/v1/auth/register` (≤128 chars)
+- Replay is **credential-bound**: same key + same credentials → same success response; same key + different credentials → conflict `ApiError`
+- An idempotency key alone is **not** authentication
+
+## RBAC and routes
+
 - Refresh rotation on `/api/v1/auth/refresh`
 - `RequireAuth` / `requireRole` for protected routes (roles: `user` | `admin`)
-- `Idempotency-Key` on `POST /api/v1/auth/register` (≤128 chars)
-- Prefer same-origin `/api` proxy so cookies stay simple (`Path=/`, `SameSite=lax` access / `strict` refresh)
+
+## Errors and logging
+
+- Auth failures, validation failures, and rate-limit responses use HTTP **`ApiError`** (`status`, `errorMessage`, `errorCode`, `errorKey`)
+- Logs must be **secret-safe**: redact passwords, tokens, cookies, and authorization material; never echo secrets in `errorMessage` or log lines
+
+## Required regression tests
+
+Keep HTTP + isolated DB coverage green on both tracks:
+
+| Track | HTTP | Isolated DB atomicity |
+|-------|------|------------------------|
+| Node | `apps/api/src/http/auth.http.test.ts` | `apps/api/src/http/auth.db.test.ts` |
+| Python | `apps/api-python/tests/test_auth_http.py` | `apps/api-python/tests/test_auth_db.py` |
+
+New auth paths need matching tests on the track(s) you change.

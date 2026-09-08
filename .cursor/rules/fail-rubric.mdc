@@ -8,11 +8,16 @@ alwaysApply: true
 Treat work as **failed** if any of these apply:
 
 - Business logic in controllers, route handlers, or React pages (belongs in services / hooks)
+  - **Exception:** trivial one-liner handlers may call a service directly; tiny single-file helpers may stay flat (no empty ceremony folders)
 - Hardcoded user-facing UI copy (must use i18n keys)
 - Access/refresh tokens in `localStorage`, `sessionStorage`, or JS-readable cookies
 - Ad-hoc API error shapes (must be `ApiError`: `status`, `errorMessage`, `errorCode`, `errorKey`)
+- Non-`ApiError` HTTP failure bodies on API routes (including auth and rate limits)
+- Secrets (passwords, tokens, cookies, authorization) leaked in HTTP errors or logs
+- Non-atomic register (user + refresh + idempotency) or non-transactional refresh consume+reissue
+- Treating an `Idempotency-Key` alone as authentication
 - New auth/error paths without tests
-- Coverage below **80%** on touched `@repo/contracts` or auth modules (FE + Node + Python)
+- Coverage below **80%** on the scoped packages below
 - `any` sprawl or unchecked deep imports across packages/modules
 - New API errors without `errorKey` + i18n catalog entry
 - HTTP routes outside `/api/v1/...`
@@ -21,3 +26,24 @@ Treat work as **failed** if any of these apply:
 - Critical POST (at least register) without Idempotency-Key support
 - Production source maps enabled for the web app
 - Secrets committed (only `.env.example` is allowed)
+
+## Coverage scope (explicit)
+
+Floor applies to **lines, statements, functions, and branches ≥ 80%** on:
+
+| Scope | What counts |
+|-------|-------------|
+| `@repo/contracts` | Package coverage thresholds |
+| `@repo/auth` | Full package, including hooks, forms, providers, and guards |
+| API auth services | Auth service (+ related lib covered by package thresholds) on the active track(s) |
+
+Verify with:
+
+```bash
+pnpm --filter @repo/contracts test
+pnpm --filter @repo/auth test
+pnpm --filter @repo/api test
+pnpm --filter @repo/api-python test
+```
+
+See `rule-to-check-mapping.mdc` for what CI actually enforces vs human review.

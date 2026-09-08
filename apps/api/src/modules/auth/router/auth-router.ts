@@ -7,18 +7,24 @@ export function createAuthRoutes(options: {
   service: AuthService;
   jwtSecret: string;
   cookieSecure: boolean;
+  authRateLimit?: {
+    max: number;
+    timeWindow: number | string;
+  };
 }): FastifyPluginAsync {
   const controller = createAuthController(options.service, {
     cookieSecure: options.cookieSecure,
   });
   const requireAuth = createRequireAuth(options.jwtSecret);
+  const authMax = options.authRateLimit?.max ?? 20;
+  const authWindow = options.authRateLimit?.timeWindow ?? "1 minute";
 
   return async (app) => {
     const authRateLimit = {
       config: {
         rateLimit: {
-          max: 20,
-          timeWindow: "1 minute",
+          max: authMax,
+          timeWindow: authWindow,
         },
       },
     };

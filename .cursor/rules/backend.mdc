@@ -6,12 +6,14 @@ alwaysApply: false
 
 # Backend module layers
 
-Keep layers separate (both Node and Python tracks):
+Keep layers separate (both Node and Python tracks) for non-trivial modules:
 
 1. **router** — HTTP wiring, status codes, cookies, rate-limit annotations
 2. **controller/handlers** — parse input, call service, map response (thin)
 3. **service** — business logic (auth, hashing, token issue, idempotency)
 4. **model/store** — persistence adapters (Prisma / SQLModel)
+
+Trivial one-liner handlers may call a service directly; do not invent empty controller files for ceremony.
 
 ## API surface
 

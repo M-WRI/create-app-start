@@ -20,6 +20,15 @@ def get_settings() -> Settings:
     return _settings
 
 
+def reset_engine() -> None:
+    """Drop the cached engine (used by quality tests that swap DATABASE_URL)."""
+    global _engine, _settings
+    if _engine is not None:
+        _engine.dispose()
+    _engine = None
+    _settings = None
+
+
 def get_engine() -> Engine:
     global _engine
     if _engine is None:
@@ -34,8 +43,14 @@ def get_engine() -> Engine:
 
 
 def get_session() -> Generator[Session, None, None]:
+    """Yield a session that commits once on success and rolls back on error."""
     with Session(get_engine()) as session:
-        yield session
+        try:
+            yield session
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
 
 
 SessionDep = Annotated[Session, Depends(get_session)]

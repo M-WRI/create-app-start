@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from typing import Literal
+from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import AwareDatetime, BaseModel, ConfigDict, EmailStr, Field
 
 UserRole = Literal["user", "admin"]
 
@@ -33,10 +34,10 @@ class LoginRequest(BaseModel):
 class AuthUser(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    id: str
-    email: EmailStr
+    id: UUID
+    email: EmailStr = Field(max_length=320)
     role: UserRole
-    created_at: str = Field(alias="createdAt")
+    created_at: AwareDatetime = Field(alias="createdAt")
 
 
 class AuthSessionResponse(BaseModel):

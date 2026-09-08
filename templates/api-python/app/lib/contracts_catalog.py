@@ -7,6 +7,10 @@ ERROR_CODES = {
     "AUTH_FORBIDDEN": "AUTH_FORBIDDEN",
     "VALIDATION_ERROR": "VALIDATION_ERROR",
     "IDEMPOTENCY_CONFLICT": "IDEMPOTENCY_CONFLICT",
+    "RATE_LIMITED": "RATE_LIMITED",
+    "NOT_FOUND": "NOT_FOUND",
+    "METHOD_NOT_ALLOWED": "METHOD_NOT_ALLOWED",
+    "BAD_REQUEST": "BAD_REQUEST",
     "INTERNAL_ERROR": "INTERNAL_ERROR",
 }
 
@@ -17,6 +21,10 @@ ERROR_KEYS = {
     "AUTH_FORBIDDEN": "errors.auth.forbidden",
     "VALIDATION_ERROR": "errors.validation.failed",
     "IDEMPOTENCY_CONFLICT": "errors.idempotency.conflict",
+    "RATE_LIMITED": "errors.common.rateLimited",
+    "NOT_FOUND": "errors.common.notFound",
+    "METHOD_NOT_ALLOWED": "errors.common.methodNotAllowed",
+    "BAD_REQUEST": "errors.common.badRequest",
     "INTERNAL_ERROR": "errors.common.internal",
 }
 

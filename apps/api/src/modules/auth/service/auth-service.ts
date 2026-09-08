@@ -13,31 +13,18 @@ import {
 } from "../../../lib/tokens.js";
 import { toAuthUser } from "../types/auth-types.js";
 
+export type AuthUserRow = {
+  id: string;
+  email: string;
+  passwordHash: string;
+  role: "user" | "admin";
+  createdAt: Date;
+};
+
 export type AuthUserStore = {
-  findByEmail: (email: string) => Promise<{
-    id: string;
-    email: string;
-    passwordHash: string;
-    role: "user" | "admin";
-    createdAt: Date;
-  } | null>;
-  findById: (id: string) => Promise<{
-    id: string;
-    email: string;
-    passwordHash: string;
-    role: "user" | "admin";
-    createdAt: Date;
-  } | null>;
-  create: (input: {
-    email: string;
-    passwordHash: string;
-  }) => Promise<{
-    id: string;
-    email: string;
-    passwordHash: string;
-    role: "user" | "admin";
-    createdAt: Date;
-  }>;
+  findByEmail: (email: string) => Promise<AuthUserRow | null>;
+  findById: (id: string) => Promise<AuthUserRow | null>;
+  create: (input: { email: string; passwordHash: string }) => Promise<AuthUserRow>;
 };
 
 export type AuthRefreshStore = {
@@ -45,13 +32,13 @@ export type AuthRefreshStore = {
   findByHash: (tokenHash: string) => Promise<{
     tokenHash: string;
     expiresAt: Date;
-    user: {
-      id: string;
-      email: string;
-      passwordHash: string;
-      role: "user" | "admin";
-      createdAt: Date;
-    };
+    user: AuthUserRow;
+  } | null>;
+  /** Atomically take ownership of a refresh session (delete + return), or null if missing/lost race. */
+  consumeByHash: (tokenHash: string) => Promise<{
+    tokenHash: string;
+    expiresAt: Date;
+    user: AuthUserRow;
   } | null>;
   deleteByHash: (tokenHash: string) => Promise<unknown>;
 };
@@ -67,10 +54,24 @@ export type AuthIdempotencyStore = {
   }) => Promise<unknown>;
 };
 
+export type AuthStores = {
+  users: AuthUserStore;
+  refresh: AuthRefreshStore;
+  idempotency: AuthIdempotencyStore;
+};
+
+export type AuthUnitOfWork = {
+  run: <T>(fn: (stores: AuthStores) => Promise<T>) => Promise<T>;
+};
+
 export type AuthServiceDeps = {
   users: AuthUserStore;
   refresh: AuthRefreshStore;
   idempotency: AuthIdempotencyStore;
+  /** When provided, register/refresh multi-writes run inside this unit of work. */
+  uow?: AuthUnitOfWork;
+  /** Map persistence unique violations to domain fields (email | key). */
+  isUniqueViolation?: (error: unknown, field: "email" | "key") => boolean;
   jwtSecret: string;
   now?: () => Date;
 };
@@ -92,17 +93,28 @@ type TokenUser = {
   createdAt: Date;
 };
 
+const defaultIsUniqueViolation: NonNullable<AuthServiceDeps["isUniqueViolation"]> = () => false;
+
 export function createAuthService(deps: AuthServiceDeps) {
   const now = deps.now ?? (() => new Date());
+  const isUniqueViolation = deps.isUniqueViolation ?? defaultIsUniqueViolation;
+  const rootStores: AuthStores = {
+    users: deps.users,
+    refresh: deps.refresh,
+    idempotency: deps.idempotency,
+  };
+  const uow: AuthUnitOfWork = deps.uow ?? {
+    run: async (fn) => fn(rootStores),
+  };
 
-  async function issueTokens(user: TokenUser): Promise<AuthResult> {
+  async function issueTokens(refreshStore: AuthRefreshStore, user: TokenUser): Promise<AuthResult> {
     const accessToken = await signAccessToken(
       { sub: user.id, email: user.email, role: user.role },
       deps.jwtSecret,
     );
     const refreshToken = createRefreshTokenValue();
     const expiresAt = new Date(now().getTime() + 1000 * 60 * 60 * 24 * 30);
-    await deps.refresh.create({
+    await refreshStore.create({
       userId: user.id,
       tokenHash: hashToken(refreshToken),
       expiresAt,
@@ -120,21 +132,37 @@ export function createAuthService(deps: AuthServiceDeps) {
     };
   }
 
+  async function replayIdempotentRegister(
+    storedBody: unknown,
+    input: RegisterRequest,
+  ): Promise<AuthResult> {
+    const stored = storedBody as AuthSessionResponse;
+    const user = await deps.users.findById(stored.user.id);
+    if (!user) {
+      throw new AppError({
+        status: 409,
+        errorCode: "IDEMPOTENCY_CONFLICT",
+        errorMessage: "Idempotent replay failed",
+      });
+    }
+    const emailMatches = user.email.toLowerCase() === input.email.toLowerCase();
+    const passwordMatches = await argon2.verify(user.passwordHash, input.password);
+    if (!emailMatches || !passwordMatches) {
+      throw new AppError({
+        status: 409,
+        errorCode: "IDEMPOTENCY_CONFLICT",
+        errorMessage: "Idempotency key reused with different credentials",
+      });
+    }
+    return issueTokens(deps.refresh, user);
+  }
+
   return {
     async register(input: RegisterRequest, idempotencyKey?: string): Promise<AuthResult> {
       if (idempotencyKey) {
         const existing = await deps.idempotency.findByKey(idempotencyKey);
         if (existing) {
-          const stored = existing.responseBody as AuthSessionResponse;
-          const user = await deps.users.findById(stored.user.id);
-          if (!user) {
-            throw new AppError({
-              status: 409,
-              errorCode: "IDEMPOTENCY_CONFLICT",
-              errorMessage: "Idempotent replay failed",
-            });
-          }
-          return issueTokens(user);
+          return replayIdempotentRegister(existing.responseBody, input);
         }
       }
 
@@ -148,20 +176,56 @@ export function createAuthService(deps: AuthServiceDeps) {
       }
 
       const passwordHash = await argon2.hash(input.password);
-      const user = await deps.users.create({ email: input.email, passwordHash });
-      const result = await issueTokens(user);
 
-      if (idempotencyKey) {
-        await deps.idempotency.create({
-          key: idempotencyKey,
-          method: "POST",
-          path: "/api/v1/auth/register",
-          statusCode: 201,
-          responseBody: result.session,
+      try {
+        return await uow.run(async (stores) => {
+          const user = await stores.users.create({ email: input.email, passwordHash });
+          const result = await issueTokens(stores.refresh, user);
+
+          if (idempotencyKey) {
+            await stores.idempotency.create({
+              key: idempotencyKey,
+              method: "POST",
+              path: "/api/v1/auth/register",
+              statusCode: 201,
+              responseBody: result.session,
+            });
+          }
+
+          return result;
         });
+      } catch (error) {
+        if (error instanceof AppError) {
+          throw error;
+        }
+        if (idempotencyKey && isUniqueViolation(error, "key")) {
+          const existing = await deps.idempotency.findByKey(idempotencyKey);
+          if (existing) {
+            return replayIdempotentRegister(existing.responseBody, input);
+          }
+          throw new AppError({
+            status: 409,
+            errorCode: "IDEMPOTENCY_CONFLICT",
+            errorMessage: "Idempotent replay failed",
+          });
+        }
+        if (isUniqueViolation(error, "email")) {
+          // Concurrent same-key register may surface as email unique after the
+          // winner commits; prefer credential-verified idempotent replay.
+          if (idempotencyKey) {
+            const existing = await deps.idempotency.findByKey(idempotencyKey);
+            if (existing) {
+              return replayIdempotentRegister(existing.responseBody, input);
+            }
+          }
+          throw new AppError({
+            status: 409,
+            errorCode: "AUTH_EMAIL_TAKEN",
+            errorMessage: "Email already registered",
+          });
+        }
+        throw error;
       }
-
-      return result;
     },
 
     async login(input: LoginRequest): Promise<AuthResult> {
@@ -183,7 +247,7 @@ export function createAuthService(deps: AuthServiceDeps) {
         });
       }
 
-      return issueTokens(user);
+      return issueTokens(deps.refresh, user);
     },
 
     async me(accessToken: string | undefined): Promise<AuthSessionResponse> {
@@ -227,17 +291,18 @@ export function createAuthService(deps: AuthServiceDeps) {
         });
       }
 
-      const session = await deps.refresh.findByHash(hashToken(refreshToken));
-      if (!session || session.expiresAt.getTime() < now().getTime()) {
-        throw new AppError({
-          status: 401,
-          errorCode: "AUTH_UNAUTHORIZED",
-          errorMessage: "Invalid refresh token",
-        });
-      }
+      return uow.run(async (stores) => {
+        const session = await stores.refresh.consumeByHash(hashToken(refreshToken));
+        if (!session || session.expiresAt.getTime() < now().getTime()) {
+          throw new AppError({
+            status: 401,
+            errorCode: "AUTH_UNAUTHORIZED",
+            errorMessage: "Invalid refresh token",
+          });
+        }
 
-      await deps.refresh.deleteByHash(session.tokenHash);
-      return issueTokens(session.user);
+        return issueTokens(stores.refresh, session.user);
+      });
     },
 
     async logout(refreshToken: string | undefined): Promise<void> {

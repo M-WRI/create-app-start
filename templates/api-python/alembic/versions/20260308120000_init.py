@@ -19,6 +19,7 @@ def upgrade() -> None:
         CREATE TYPE "UserRole" AS ENUM ('user', 'admin');
     EXCEPTION
         WHEN duplicate_object THEN null;
+        WHEN unique_violation THEN null;
     END $$;
     """)
     op.execute("""

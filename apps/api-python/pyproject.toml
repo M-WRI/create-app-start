@@ -36,7 +36,13 @@ packages = ["app"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "--cov=app.modules.auth.service --cov=app.modules.health.service --cov=app.lib.errors --cov=app.lib.tokens --cov-report=term-missing --cov-fail-under=80"
+# Coverage scope: full `app` package (routers/stores/lib/main exercised by HTTP + unit tests).
+# Threshold ≥80 on that scope. `.coverage` stays in the api-python cwd (gitignored; sync excludes it).
+addopts = "--cov=app --cov-report=term-missing --cov-fail-under=80"
+
+[tool.coverage.run]
+# Omit empty package markers only; keep routers/controllers/stores/lib in scope.
+omit = ["app/**/__init__.py"]
 
 [tool.coverage.report]
 show_missing = true

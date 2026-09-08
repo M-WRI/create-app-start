@@ -15,7 +15,7 @@ alwaysApply: false
 
 ## Forced unit folders
 
-Prefer `component/`, `hooks/`, `utils/`, `types/`, `constants/` under each unit.
+Prefer `component/`, `hooks/`, `utils/`, `types/`, `constants/` under each unit when the unit has several files. Tiny single-file helpers may stay flat.
 
 ## Stack mandates
 

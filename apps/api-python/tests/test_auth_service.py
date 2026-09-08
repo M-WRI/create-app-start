@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 from typing import Any
+from uuid import uuid4
 
 import pytest
 from app.lib.contracts_models import LoginRequest, RegisterRequest
@@ -22,7 +23,7 @@ class MemoryUsers:
 
     def create(self, *, email: str, password_hash: str) -> StoredUser:
         user = StoredUser(
-            id=f"user-{len(self.by_id) + 1}",
+            id=str(uuid4()),
             email=email,
             password_hash=password_hash,
             role="user",
@@ -43,6 +44,13 @@ class MemoryRefresh:
 
     def find_by_hash(self, token_hash: str) -> tuple[str, datetime, StoredUser] | None:
         row = self.rows.get(token_hash)
+        if row is None:
+            return None
+        expires_at, user = row
+        return token_hash, expires_at, user
+
+    def consume_by_hash(self, token_hash: str) -> tuple[str, datetime, StoredUser] | None:
+        row = self.rows.pop(token_hash, None)
         if row is None:
             return None
         expires_at, user = row
@@ -167,10 +175,32 @@ def test_idempotency_conflict_when_user_missing(service):
     )
     users.by_id.clear()
     users.by_email.clear()
-    idem.rows["gone"] = result.session.model_dump(by_alias=True)
+    idem.rows["gone"] = result.session.model_dump(by_alias=True, mode="json")
     with pytest.raises(AppError) as err:
         auth.register(
             RegisterRequest(email="a@example.com", password="password123"),
             idempotency_key="gone",
         )
     assert err.value.error_code == "IDEMPOTENCY_CONFLICT"
+
+
+def test_idempotency_rejects_credential_mismatch(service):
+    auth, *_rest = service
+    auth.register(
+        RegisterRequest(email="a@example.com", password="password123"),
+        idempotency_key="k1",
+    )
+    with pytest.raises(AppError) as bad_password:
+        auth.register(
+            RegisterRequest(email="a@example.com", password="other-password"),
+            idempotency_key="k1",
+        )
+    assert bad_password.value.error_code == "IDEMPOTENCY_CONFLICT"
+
+    with pytest.raises(AppError) as bad_email:
+        auth.register(
+            RegisterRequest(email="other@example.com", password="password123"),
+            idempotency_key="k1",
+        )
+    assert bad_email.value.error_code == "IDEMPOTENCY_CONFLICT"
+

@@ -4,9 +4,9 @@ import * as p from "@clack/prompts";
 import { defineCommand, runMain } from "citty";
 import { generateApp } from "./generate.js";
 import {
-  assertValidName,
   type Backend,
   type DeployPreference,
+  assertValidName,
   parseLocalesList,
 } from "./options.js";
 
@@ -135,9 +135,8 @@ const main = defineCommand({
       }
     }
 
-    const parent = resolve(
-      String(args.outDir ?? process.env["INIT_CWD"] ?? process.cwd()),
-    );
+    const initCwdKey = "INIT_CWD";
+    const parent = resolve(String(args.outDir ?? process.env[initCwdKey] ?? process.cwd()));
     const targetDir = resolve(parent, name);
 
     const spin = p.spinner();

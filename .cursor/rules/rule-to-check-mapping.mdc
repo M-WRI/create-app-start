@@ -1,0 +1,38 @@
+---
+description: Maps fail-rubric items to CI checks vs human review (honest enforcement)
+alwaysApply: true
+---
+
+# Fail-rubric → check mapping
+
+Honest map of each fail-rubric item to a **machine check** (command / CI job) or **human review**. Do not claim CI enforces what it does not.
+
+| Fail-rubric item | Enforcement |
+|------------------|-------------|
+| Business logic in controllers / pages | **human review** (softened: trivial handlers / flat helpers OK) |
+| Hardcoded UI copy (must use i18n) | **human review**; axe/auth tests do not scan all copy |
+| Tokens in `localStorage` / `sessionStorage` / JS-readable cookies | **human review**; HTTP auth tests assert httpOnly `Set-Cookie` on happy paths |
+| Ad-hoc / non-`ApiError` HTTP failures on API routes | **partial:** unit + HTTP tests (`pnpm --filter @repo/api test`, `pnpm --filter @repo/api-python test`, CI `check` / `python-api`); full route surface = **human review** |
+| Secrets leaked in HTTP errors or logs | **partial:** error redaction unit tests in API tracks; production log audit = **human review** |
+| Non-atomic register / refresh | **partial:** isolated DB tests (`apps/api/src/http/auth.db.test.ts`, `apps/api-python/tests/test_auth_db.py`) when run; not a separate CI gate beyond package `test` |
+| Idempotency-Key alone as auth | **human review** (design / review); register tests cover key + credentials behavior |
+| New auth/error paths without tests | **human review** (CI only fails if existing floors break) |
+| Coverage &lt; 80% (scoped packages) | **machine:** `pnpm --filter @repo/contracts test`, `pnpm --filter @repo/auth test`, `pnpm --filter @repo/api test`, `pnpm --filter @repo/api-python test` via CI `check` (`pnpm test`) + `python-api` (`uv run pytest`). **Caveats:** Node `@repo/api` thresholds use **branches 60%** (lines/functions/statements 80%); Python `--cov-fail-under=80` is line-oriented (branch not separately gated). Rubric still targets branches ≥80 for review. |
+| `any` sprawl / deep imports | **partial:** `pnpm typecheck` / `pnpm lint` (CI `check`); cross-package import policy = **human review** |
+| New API errors without `errorKey` + i18n | **partial:** contracts schema drift (`check:contracts` / CI contract step); catalog copy alignment = **human review** |
+| HTTP routes outside `/api/v1/...` | **human review**; existing route tests use `/api/v1` |
+| Cross-origin cookie auth without documented exception | **human review** |
+| Protected route without `RequireAuth` / `requireRole` | **human review**; `@repo/auth` unit tests cover the helpers themselves |
+| Register without Idempotency-Key | **partial:** HTTP/service tests expect the header; missing support on new critical POSTs = **human review** |
+| Production source maps enabled | **partial:** web Vite config `sourcemap: false`; CI `build` does not assert the flag |
+| Secrets committed (only `.env.example`) | **partial:** `.gitignore` + review; no dedicated secret-scan job (CI `pnpm audit` is continue-on-error) |
+
+## CI jobs (reference)
+
+| Job | Runs |
+|-----|------|
+| `check` | format, lint, typecheck, `pnpm test` (turbo; includes contracts/auth/api coverage floors), axe (`@repo/auth`), build, contracts JSON Schema drift, `templates:check` |
+| `python-api` | ruff, mypy, pytest (cov-fail-under 80 on auth/health/errors/tokens), schema sync |
+| `generator` | scaffold smoke + lint/typecheck/test/build of generated app |
+
+When unsure, prefer **human review** over inventing a CI claim.

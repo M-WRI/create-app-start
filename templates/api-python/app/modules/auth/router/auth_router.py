@@ -27,6 +27,7 @@ def get_auth_service(session: SessionDep, settings: SettingsDep) -> AuthService:
         refresh=SqlAuthRefreshStore(session),
         idempotency=SqlAuthIdempotencyStore(session),
         jwt_secret=settings.jwt_secret,
+        recover=session.rollback,
     )
 
 

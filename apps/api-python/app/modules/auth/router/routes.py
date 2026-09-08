@@ -23,9 +23,20 @@ router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 RequireAuthDep = Annotated[dict[str, str], Depends(require_auth)]
 IdempotencyKeyDep = Annotated[str | None, Depends(parse_idempotency_key)]
 
+_auth_rate_limit_value = "20/minute"
+
+
+def set_auth_rate_limit(value: str) -> None:
+    global _auth_rate_limit_value
+    _auth_rate_limit_value = value
+
+
+def _auth_rate_limit() -> str:
+    return _auth_rate_limit_value
+
 
 @router.post("/register", status_code=201)
-@limiter.limit("20/minute")
+@limiter.limit(_auth_rate_limit)
 def register(
     request: Request,
     body: RegisterRequest,
@@ -46,7 +57,7 @@ def register(
 
 
 @router.post("/login")
-@limiter.limit("20/minute")
+@limiter.limit(_auth_rate_limit)
 def login(
     request: Request,
     body: LoginRequest,
@@ -74,7 +85,8 @@ def logout(
 ) -> Response:
     service.logout(refresh_token)
     clear_auth_cookies(response, secure=settings.cookie_secure)
-    return Response(status_code=204)
+    response.status_code = 204
+    return response
 
 
 @router.post("/refresh")

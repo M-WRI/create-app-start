@@ -1,6 +1,6 @@
 {
   "name": "create-app-start",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Scaffold a production-minded monorepo (Vite React + Fastify or FastAPI)",
   "type": "module",
   "license": "MIT",
@@ -26,19 +26,12 @@
   "bugs": {
     "url": "https://github.com/M-WRI/create-app-start/issues"
   },
-  "keywords": [
-    "create-app",
-    "scaffold",
-    "monorepo",
-    "vite",
-    "fastify",
-    "fastapi",
-    "turborepo"
-  ],
+  "keywords": ["create-app", "scaffold", "monorepo", "vite", "fastify", "fastapi", "turborepo"],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "bundle:templates": "node ./scripts/bundle-templates.mjs",
     "prepack": "pnpm run build && pnpm run bundle:templates",
+    "postpack": "rm -rf templates",
     "start": "tsx src/index.ts",
     "dev": "tsx src/index.ts",
     "lint": "eslint .",

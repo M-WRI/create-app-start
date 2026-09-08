@@ -26,12 +26,19 @@ export const en = {
     },
     validation: {
       failed: "Please check the form and try again.",
+      email: "Enter a valid email address.",
+      password: "Password must be at least 8 characters.",
     },
     idempotency: {
       conflict: "This request was already processed.",
     },
     common: {
       internal: "Something went wrong. Please try again.",
+      network: "Network error. Check your connection and try again.",
+      rateLimited: "Too many requests. Please wait and try again.",
+      notFound: "The requested resource was not found.",
+      methodNotAllowed: "This method is not allowed for that resource.",
+      badRequest: "The request could not be understood.",
     },
   },
 } as const;

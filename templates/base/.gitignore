@@ -7,6 +7,10 @@ dist
 .env.local
 .env.*.local
 coverage
+.coverage
+.coverage.*
+**/.coverage
+**/.coverage.*
 .venv
 __pycache__
 .pytest_cache
@@ -19,6 +23,8 @@ templates/**/node_modules
 templates/**/dist
 templates/**/.venv
 templates/**/coverage
+templates/**/.coverage
+templates/**/.coverage.*
 # Bundled only for npm pack / publish (see packages/create-app prepack)
 packages/create-app/templates
 *.tgz

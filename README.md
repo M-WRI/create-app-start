@@ -103,7 +103,8 @@ Generated apps include **one** backend only, plus `.cursor/rules` and specialize
 
 | Version | Date | Key features |
 |---------|------|----------------|
-| **1.0.0** | 2026-09-08 | Initial release: Vite/React web, Fastify+Prisma and FastAPI+SQLModel tracks, `@repo/contracts` ApiError + JSON Schema, httpOnly cookie auth + RBAC + Idempotency-Key, `@repo/ui` / i18n / auth packages, CI + coverage floors + axe, `create-app-start` CLI with bundled templates, Cursor fail-rubric + parallel agents (`frontend`, `backend`, `testing`, `contracts`, `auth-security`, `i18n`, `dual-backend`, `ci-quality`, `reviewer`) |
+| **1.1.0** | 2026-09-08 | Quality hardening: credential-bound idempotent register, atomic register/refresh transactions, ApiError-shaped HTTP (429/404/405/400), semantic contract schema sync (UUID/date-time AuthUser), auth UI field/network errors + ≥80% coverage scope, isolated Postgres HTTP/DB regression tests, strict BCP-47 locale validation, create-app TS/lint isolation from packed templates, fail-rubric ↔ CI mapping, single-track generated rules/agents |
+| **1.0.0** | 2026-09-08 | Initial release: Vite/React web, Fastify+Prisma and FastAPI+SQLModel tracks, `@repo/contracts` ApiError + JSON Schema, httpOnly cookie auth + RBAC + Idempotency-Key, `@repo/ui` / i18n / auth packages, CI + coverage floors + axe, `create-app-start` CLI with bundled templates, Cursor fail-rubric + parallel agents |
 
 ---
 
