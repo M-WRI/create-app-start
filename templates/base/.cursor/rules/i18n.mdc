@@ -1,0 +1,12 @@
+---
+description: i18n keys only for user-facing copy
+globs: apps/web/**/*.{ts,tsx},packages/auth/**/*.{ts,tsx},packages/i18n/**/*
+alwaysApply: false
+---
+
+# i18n
+
+- User-facing strings use translation **keys** only — no hardcoded UI copy in components
+- Auth + ApiError catalogs live in `@repo/i18n` and stay aligned with `@repo/contracts` error keys
+- Resolve API failures with `errorKey` → i18n → fallback locale → generic
+- New locales = new resource files + registration (wizard later); do not fork copy into components

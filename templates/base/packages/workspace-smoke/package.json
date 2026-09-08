@@ -1,0 +1,19 @@
+{
+  "name": "@repo/workspace-smoke",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test dist/index.test.js"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "^22.14.1",
+    "eslint": "^9.25.1",
+    "typescript": "^5.8.3"
+  }
+}

@@ -1,0 +1,23 @@
+---
+description: Explicit fail rubric — treat as failure for humans and AI
+alwaysApply: true
+---
+
+# Fail rubric (~9 quality bar)
+
+Treat work as **failed** if any of these apply:
+
+- Business logic in controllers, route handlers, or React pages (belongs in services / hooks)
+- Hardcoded user-facing UI copy (must use i18n keys)
+- Access/refresh tokens in `localStorage`, `sessionStorage`, or JS-readable cookies
+- Ad-hoc API error shapes (must be `ApiError`: `status`, `errorMessage`, `errorCode`, `errorKey`)
+- New auth/error paths without tests
+- Coverage below **80%** on touched `@repo/contracts` or auth modules (FE + Node + Python)
+- `any` sprawl or unchecked deep imports across packages/modules
+- New API errors without `errorKey` + i18n catalog entry
+- HTTP routes outside `/api/v1/...`
+- Cross-origin cookie auth without a documented exception
+- New protected route without the role-check pattern (`RequireAuth` / `requireRole`)
+- Critical POST (at least register) without Idempotency-Key support
+- Production source maps enabled for the web app
+- Secrets committed (only `.env.example` is allowed)

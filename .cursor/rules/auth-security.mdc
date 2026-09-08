@@ -1,0 +1,15 @@
+---
+description: httpOnly cookie auth and security defaults
+globs: packages/auth/**/*.{ts,tsx},apps/api/**/*.ts,apps/api-python/**/*.py,apps/web/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# Auth security
+
+- Access + refresh tokens only as **httpOnly** cookies (`access_token`, `refresh_token`)
+- Never store tokens in JS-accessible storage
+- Passwords: argon2; JWT secret min length enforced at API boot
+- Refresh rotation on `/api/v1/auth/refresh`
+- `RequireAuth` / `requireRole` for protected routes (roles: `user` | `admin`)
+- `Idempotency-Key` on `POST /api/v1/auth/register` (≤128 chars)
+- Prefer same-origin `/api` proxy so cookies stay simple (`Path=/`, `SameSite=lax` access / `strict` refresh)

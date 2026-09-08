@@ -1,0 +1,26 @@
+---
+description: Backend modular layers for Fastify and FastAPI
+globs: apps/api/**/*.{ts,js},apps/api-python/**/*.py
+alwaysApply: false
+---
+
+# Backend module layers
+
+Keep layers separate (both Node and Python tracks):
+
+1. **router** — HTTP wiring, status codes, cookies, rate-limit annotations
+2. **controller/handlers** — parse input, call service, map response (thin)
+3. **service** — business logic (auth, hashing, token issue, idempotency)
+4. **model/store** — persistence adapters (Prisma / SQLModel)
+
+## API surface
+
+- All routes under `/api/v1/...`
+- Shared behavior: health, auth register/login/logout/refresh/me
+- Emit `x-request-id`; redact secrets in logs
+- Global rate limit + stricter limits on login/register
+- Helmet/CSP security headers on responses
+
+## Dual backends
+
+Node (`apps/api`) and Python (`apps/api-python`) must stay behaviorally aligned with `@repo/contracts`. Prefer updating contracts first, then both tracks.

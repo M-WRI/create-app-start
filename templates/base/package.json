@@ -1,0 +1,29 @@
+{
+  "name": "app-start-architecture",
+  "private": true,
+  "packageManager": "pnpm@9.15.9",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "format": "biome check --write .",
+    "format:check": "biome check .",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:a11y": "pnpm --filter @repo/auth test:a11y",
+    "contracts:schema": "pnpm --filter @repo/contracts export:schema",
+    "check:contracts": "pnpm contracts:schema && git diff --exit-code packages/contracts/schemas/contracts.json && pnpm --filter @repo/api-python schema:sync",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm test:a11y && pnpm build && pnpm check:contracts && pnpm templates:check",
+    "templates:sync": "node scripts/sync-templates.mjs",
+    "templates:check": "node scripts/sync-templates.mjs --check",
+    "create-app": "pnpm --filter create-app-start exec tsx src/index.ts"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "turbo": "^2.5.4",
+    "typescript": "^5.8.3"
+  }
+}

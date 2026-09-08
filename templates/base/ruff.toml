@@ -1,0 +1,7 @@
+# Root Ruff entry — FastAPI app config also in apps/api-python/pyproject.toml.
+target-version = "py312"
+line-length = 100
+src = ["apps/api-python/app", "apps/api-python/tests", "apps/api-python/scripts"]
+
+[lint]
+select = ["E", "F", "I", "UP", "B"]

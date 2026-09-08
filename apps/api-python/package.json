@@ -1,0 +1,15 @@
+{
+  "name": "@repo/api-python",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "PATH=\"$HOME/.local/bin:/opt/homebrew/bin:$PATH\" uv run --env-file ../../.env uvicorn app.main:app --reload --host 0.0.0.0 --port 3000",
+    "build": "PATH=\"$HOME/.local/bin:/opt/homebrew/bin:$PATH\" uv sync && PATH=\"$HOME/.local/bin:/opt/homebrew/bin:$PATH\" uv run --env-file ../../.env python -c \"from app.main import app; print(app.title)\" && mkdir -p .turbo-out && date -u +%Y-%m-%dT%H:%M:%SZ > .turbo-out/stamp",
+    "lint": "PATH=\"$HOME/.local/bin:/opt/homebrew/bin:$PATH\" uv run ruff check app tests scripts",
+    "typecheck": "PATH=\"$HOME/.local/bin:/opt/homebrew/bin:$PATH\" uv run mypy app",
+    "test": "PATH=\"$HOME/.local/bin:/opt/homebrew/bin:$PATH\" uv run pytest",
+    "schema:sync": "PATH=\"$HOME/.local/bin:/opt/homebrew/bin:$PATH\" uv run python scripts/check_schema_sync.py",
+    "db:migrate": "PATH=\"$HOME/.local/bin:/opt/homebrew/bin:$PATH\" uv run --env-file ../../.env alembic upgrade head",
+    "db:stamp": "PATH=\"$HOME/.local/bin:/opt/homebrew/bin:$PATH\" uv run --env-file ../../.env alembic stamp head"
+  }
+}

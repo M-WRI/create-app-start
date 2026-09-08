@@ -1,0 +1,191 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: lint-format-typecheck-test-build-contract-axe
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Format check (Biome)
+        run: pnpm format:check
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test (coverage floors enforced per package)
+        run: pnpm test
+
+      - name: Axe smoke (auth forms)
+        run: pnpm --filter @repo/auth test:a11y
+
+      - name: Build
+        run: pnpm build
+
+      - name: Contract check (JSON Schema drift)
+        run: |
+          pnpm --filter @repo/contracts export:schema
+          git diff --exit-code packages/contracts/schemas/contracts.json
+
+      - name: Templates in sync with working tree
+        run: pnpm templates:check
+
+      - name: Dependency audit (high+)
+        run: pnpm audit --audit-level=high
+        continue-on-error: true
+
+  generator:
+    name: create-app-smoke (${{ matrix.backend }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        backend: [node, fastapi]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Setup uv
+        if: matrix.backend == 'fastapi'
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.12.10"
+          enable-cache: true
+
+      - name: Setup Python
+        if: matrix.backend == 'fastapi'
+        run: uv python install 3.12
+
+      - name: Install generator workspace
+        run: pnpm install --frozen-lockfile
+
+      - name: Pack create-app-start (bundled templates)
+        if: matrix.backend == 'node'
+        working-directory: packages/create-app
+        run: |
+          pnpm pack --pack-destination "$RUNNER_TEMP"
+          TGZ=$(ls "$RUNNER_TEMP"/create-app-start-*.tgz | head -1)
+          test -n "$TGZ"
+          tar -tzf "$TGZ" | grep -q 'package/templates/base/package.json'
+          echo "PACKED_TGZ=$TGZ" >> "$GITHUB_ENV"
+
+      - name: Scaffold from packed tarball (npx path)
+        if: matrix.backend == 'node'
+        run: |
+          npm install "$PACKED_TGZ" --prefix "$RUNNER_TEMP/create-app-cli"
+          "$RUNNER_TEMP/create-app-cli/node_modules/.bin/create-app-start" npx-smoke \
+            --backend node --deploy ci-only --yes --outDir "$RUNNER_TEMP"
+          test -f "$RUNNER_TEMP/npx-smoke/package.json"
+
+      - name: Scaffold app (non-interactive)
+        run: |
+          pnpm create-app -- gen-smoke \
+            --backend ${{ matrix.backend }} \
+            --locales de \
+            --deploy ci-only \
+            --yes \
+            --outDir "$RUNNER_TEMP"
+
+      - name: Install generated app
+        working-directory: ${{ runner.temp }}/gen-smoke
+        run: |
+          cp .env.example .env
+          pnpm install --frozen-lockfile
+
+      - name: Lint generated app
+        working-directory: ${{ runner.temp }}/gen-smoke
+        run: pnpm lint
+
+      - name: Typecheck generated app
+        working-directory: ${{ runner.temp }}/gen-smoke
+        run: pnpm typecheck
+
+      - name: Test generated app
+        working-directory: ${{ runner.temp }}/gen-smoke
+        run: pnpm test
+
+      - name: Build generated app
+        working-directory: ${{ runner.temp }}/gen-smoke
+        env:
+          DATABASE_URL: postgresql://asa:asa@localhost:5432/asa
+          JWT_SECRET: change-me-min-32-chars-long-secret!!
+        run: pnpm build
+
+  python-api:
+    name: api-python-lint-typecheck-test-schema
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/api-python
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.12.10"
+          enable-cache: true
+
+      - name: Setup Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Ruff
+        run: uv run ruff check app tests scripts
+
+      - name: Mypy
+        run: uv run mypy app
+
+      - name: Pytest (coverage floor 80%)
+        run: uv run pytest
+
+      - name: Schema sync vs contracts JSON Schema
+        run: uv run python scripts/check_schema_sync.py

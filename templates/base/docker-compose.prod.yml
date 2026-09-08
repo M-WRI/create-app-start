@@ -1,0 +1,46 @@
+# Production-shaped compose example (Step 2 stub).
+# Wire real API/web images after Steps 6–8. Prefer a single-origin reverse proxy
+# in front of web + /api (see docs/deploy.md).
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-asa}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-asa}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # api:
+  #   build:
+  #     context: .
+  #     dockerfile: docker/api-node.Dockerfile
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   environment:
+  #     DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+  #     JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
+  #   expose:
+  #     - "3000"
+
+  # web:
+  #   build:
+  #     context: .
+  #     dockerfile: docker/web.Dockerfile
+  #   depends_on:
+  #     - api
+  #   ports:
+  #     - "80:80"
+
+  # proxy:  # Caddy/nginx — same-origin / and /api (recommended)
+
+volumes:
+  postgres_data:

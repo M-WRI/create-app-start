@@ -1,0 +1,34 @@
+---
+description: Frontend placement, TanStack, and component reuse
+globs: apps/web/**/*.{ts,tsx},packages/ui/**/*.{ts,tsx},packages/auth/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# Frontend conventions
+
+## Placement
+
+- Shared atoms/molecules → `@repo/ui`
+- Auth UI/client → `@repo/auth`
+- App shell/routes/providers → `apps/web`
+- Feature-local UI → app or module `components/` (never reverse-import from other features)
+
+## Forced unit folders
+
+Prefer `component/`, `hooks/`, `utils/`, `types/`, `constants/` under each unit.
+
+## Stack mandates
+
+- Data: TanStack Query
+- Forms: TanStack Form
+- Tables: TanStack Table
+- Routing: React Router
+- Styling: Tailwind + `@repo/ui` tokens
+- Copy: i18n keys only (`@repo/i18n` / `react-i18next`)
+
+## Quality
+
+- Keep pages thin; logic in hooks/services
+- Preserve CSP meta and `sourcemap: false` in production Vite config
+- Same-origin `/api` proxy in dev — do not invent cross-origin cookie setups
+- Axe smoke must stay green on auth forms

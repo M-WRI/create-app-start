@@ -1,0 +1,26 @@
+---
+description: ApiError and contracts are the single source of truth
+globs: packages/contracts/**/*.{ts,json},apps/api/**/*.ts,apps/api-python/**/*.py,packages/auth/**/*.{ts,tsx},packages/i18n/**/*
+alwaysApply: false
+---
+
+# ApiError + contracts
+
+Failed API responses **must** be:
+
+```json
+{
+  "status": 401,
+  "errorMessage": "human/dev message",
+  "errorCode": "AUTH_UNAUTHORIZED",
+  "errorKey": "errors.auth.unauthorized"
+}
+```
+
+Rules:
+
+- Do not invent alternate error envelopes
+- Add codes/keys in `@repo/contracts` first; regenerate JSON Schema
+- Python Pydantic models must stay in sync (`pnpm --filter @repo/api-python schema:sync`)
+- FE displays copy via `errorKey` → i18n, not raw `errorMessage` as primary UI
+- Domain failures throw/map through `AppError` (or Python equivalent) → handler

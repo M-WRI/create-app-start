@@ -1,0 +1,55 @@
+{
+  "name": "create-app-start",
+  "version": "0.1.0",
+  "description": "Scaffold a production-minded monorepo (Vite React + Fastify or FastAPI)",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "create-app-start": "./dist/index.js"
+  },
+  "files": ["dist", "templates", "README.md"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "keywords": [
+    "create-app",
+    "scaffold",
+    "monorepo",
+    "vite",
+    "fastify",
+    "fastapi",
+    "turborepo"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "bundle:templates": "node ./scripts/bundle-templates.mjs",
+    "prepack": "pnpm run build && pnpm run bundle:templates",
+    "start": "tsx src/index.ts",
+    "dev": "tsx src/index.ts",
+    "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.10.0",
+    "citty": "^0.1.6"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "^22.14.1",
+    "eslint": "^9.25.1",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.1"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

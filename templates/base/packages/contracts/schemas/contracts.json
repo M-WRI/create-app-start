@@ -1,0 +1,193 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://app-start-architecture.local/schemas/contracts.json",
+  "title": "@repo/contracts",
+  "description": "Source of truth for ApiError, auth DTOs, and RBAC. Python Pydantic models must match these schemas.",
+  "definitions": {
+    "ApiError": {
+      "$ref": "#/definitions/ApiError",
+      "definitions": {
+        "ApiError": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "integer",
+              "minimum": 400,
+              "maximum": 599
+            },
+            "errorMessage": {
+              "type": "string",
+              "minLength": 1
+            },
+            "errorCode": {
+              "type": "string",
+              "minLength": 1
+            },
+            "errorKey": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "status",
+            "errorMessage",
+            "errorCode",
+            "errorKey"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "UserRole": {
+      "$ref": "#/definitions/UserRole",
+      "definitions": {
+        "UserRole": {
+          "type": "string",
+          "enum": [
+            "user",
+            "admin"
+          ]
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "RegisterRequest": {
+      "$ref": "#/definitions/RegisterRequest",
+      "definitions": {
+        "RegisterRequest": {
+          "type": "object",
+          "properties": {
+            "email": {
+              "type": "string",
+              "format": "email",
+              "maxLength": 320
+            },
+            "password": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 128
+            }
+          },
+          "required": [
+            "email",
+            "password"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "LoginRequest": {
+      "$ref": "#/definitions/LoginRequest",
+      "definitions": {
+        "LoginRequest": {
+          "type": "object",
+          "properties": {
+            "email": {
+              "type": "string",
+              "format": "email",
+              "maxLength": 320
+            },
+            "password": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          "required": [
+            "email",
+            "password"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "AuthUser": {
+      "$ref": "#/definitions/AuthUser",
+      "definitions": {
+        "AuthUser": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "email": {
+              "type": "string",
+              "format": "email",
+              "maxLength": 320
+            },
+            "role": {
+              "type": "string",
+              "enum": [
+                "user",
+                "admin"
+              ]
+            },
+            "createdAt": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "required": [
+            "id",
+            "email",
+            "role",
+            "createdAt"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "AuthSessionResponse": {
+      "$ref": "#/definitions/AuthSessionResponse",
+      "definitions": {
+        "AuthSessionResponse": {
+          "type": "object",
+          "properties": {
+            "user": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "email": {
+                  "type": "string",
+                  "format": "email",
+                  "maxLength": 320
+                },
+                "role": {
+                  "type": "string",
+                  "enum": [
+                    "user",
+                    "admin"
+                  ]
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              },
+              "required": [
+                "id",
+                "email",
+                "role",
+                "createdAt"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "user"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    }
+  }
+}

@@ -1,0 +1,24 @@
+# Local development dependencies (Step 2 stub).
+# APIs and web containers land in later steps; Postgres is ready now.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: asa-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: asa
+      POSTGRES_PASSWORD: asa
+      POSTGRES_DB: asa
+    volumes:
+      - asa_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U asa -d asa"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  asa_postgres_data:
