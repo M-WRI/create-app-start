@@ -1,6 +1,6 @@
 # create-app-start
 
-Scaffold a production-minded monorepo app (Vite React + Fastify or FastAPI) from the [app-start-architecture](https://github.com/) templates.
+Scaffold a production-minded monorepo app (Vite React + Fastify or FastAPI) from the [create-app-start](https://github.com/M-WRI/create-app-start) templates.
 
 ## Usage
 

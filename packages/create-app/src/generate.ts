@@ -85,7 +85,7 @@ function writeProjectReadme(targetDir: string, options: GenerateOptions): void {
 
   const body = `# ${options.name}
 
-Generated from [app-start-architecture](https://github.com/) templates.
+Generated from [app-start-architecture](https://github.com/M-WRI/create-app-start) templates.
 
 - **Backend:** ${apiLabel}
 - **Default locale:** \`${options.defaultLocale}\`${

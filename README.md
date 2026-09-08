@@ -1,17 +1,70 @@
-# App Start Architecture
+# create-app-start
 
-Production-minded monorepo starter **and** app generator: Vite React web, dual backends (Fastify + FastAPI), shared contracts/UI/auth/i18n, CI quality gates toward ~9/10.
+Production-minded monorepo starter **and** app generator: Vite React web, dual backends (Fastify + FastAPI), shared contracts/UI/auth/i18n, Cursor agents/rules, and CI quality gates toward ~9/10.
+
+**Repository:** [github.com/M-WRI/create-app-start](https://github.com/M-WRI/create-app-start)
 
 ## Prerequisites
 
 - Node.js **22+** (`.nvmrc`)
 - **pnpm** 9: `corepack enable && corepack prepare pnpm@9.15.9 --activate`
 - **Postgres** (Docker Compose, Homebrew, or hosted)
-- **uv** + Python 3.12 only if you pick the FastAPI track (`curl -LsSf https://astral.sh/uv/install.sh | sh`)
+- **uv** + Python 3.12 only if you use the FastAPI track (`curl -LsSf https://astral.sh/uv/install.sh | sh`)
 
 ---
 
-## Create an app (`npx`)
+## How to: run this repo (downloaded / cloned)
+
+If you cloned **this** project and want to develop it as your app, you do **not** need `create-app`. Install and run:
+
+```bash
+git clone git@github.com:M-WRI/create-app-start.git
+cd create-app-start
+cp .env.example .env
+pnpm install
+docker compose up -d    # or point DATABASE_URL at your Postgres
+```
+
+Run **one** API on `:3000` (web proxies `/api` → that origin):
+
+```bash
+# Node (Fastify + Prisma)
+pnpm --filter @repo/api db:migrate
+pnpm --filter @repo/api dev
+
+# OR Python (FastAPI) — stamp if Prisma already migrated the schema
+pnpm --filter @repo/api-python db:stamp
+pnpm --filter @repo/api-python dev
+
+# Web (separate terminal)
+pnpm --filter @repo/web dev
+```
+
+- Web: `http://localhost:5173`
+- API: `http://localhost:3000` (`GET /api/v1/health`)
+
+Full gate: `pnpm check`.
+
+---
+
+## How to: create a new app
+
+Use this when you want a **separate** project folder (not nested under `apps/` of this repo). Prefer scaffolding as a **sibling** directory.
+
+### A. From this repo (`pnpm create-app`)
+
+```bash
+cd create-app-start
+pnpm install
+
+# Interactive
+pnpm create-app --outDir ..
+
+# Non-interactive (sibling folder ../my-app)
+pnpm create-app -- my-app --backend node --locales de --deploy paas --yes --outDir ..
+```
+
+### B. From npm (`npx`) — after the CLI is published
 
 ```bash
 npx create-app-start@latest my-app
@@ -19,13 +72,13 @@ npx create-app-start@latest my-app
 npx create-app-start@latest my-app --backend node --locales de --deploy paas --yes
 ```
 
-Then:
+### After scaffold
 
 ```bash
-cd my-app
+cd my-app          # or ../my-app
 cp .env.example .env
 pnpm install
-docker compose up -d    # Postgres (or point DATABASE_URL elsewhere)
+docker compose up -d
 # Node track:
 pnpm --filter @repo/api db:migrate && pnpm --filter @repo/api dev
 # Web:
@@ -40,58 +93,19 @@ pnpm --filter @repo/web dev
 | `--locales` | extra locales, comma-separated | none |
 | `--deploy` | `paas` \| `docker-compose` \| `ci-only` | prompted / `paas` with `--yes` |
 | `--yes` | skip prompts (needs name + `--backend`) | off |
-| `--outDir` | parent directory for the project | cwd |
+| `--outDir` | parent directory for the project | cwd (`INIT_CWD` for `pnpm create-app`) |
+
+Generated apps include **one** backend only, plus `.cursor/rules` and specialized agents.
 
 ---
 
-## Clone path (contribute / customize templates)
+## Version log
 
-Use this repo as the **generator**. Scaffold into a sibling folder (keeps this monorepo as template source):
-
-```bash
-git clone <this-repo-url> app-start-architecture
-cd app-start-architecture
-pnpm install
-
-# Interactive wizard (creates ./<name> under the directory you run from)
-pnpm create-app
-
-# Or non-interactive
-pnpm create-app -- my-app --backend node --locales de --deploy paas --yes
-```
-
-Default `--outDir` is the cwd where you ran `pnpm create-app` (`INIT_CWD`).
+| Version | Date | Key features |
+|---------|------|----------------|
+| **1.0.0** | 2026-09-08 | Initial release: Vite/React web, Fastify+Prisma and FastAPI+SQLModel tracks, `@repo/contracts` ApiError + JSON Schema, httpOnly cookie auth + RBAC + Idempotency-Key, `@repo/ui` / i18n / auth packages, CI + coverage floors + axe, `create-app-start` CLI with bundled templates, Cursor fail-rubric + parallel agents (`frontend`, `backend`, `testing`, `contracts`, `auth-security`, `i18n`, `dual-backend`, `ci-quality`, `reviewer`) |
 
 ---
-
-## Develop this monorepo (templates source)
-
-```bash
-cp .env.example .env
-# Postgres: docker compose up -d   OR   brew services start postgresql@16
-pnpm install
-pnpm --filter @repo/api db:migrate   # Prisma (Node track)
-pnpm check                           # full quality gate
-```
-
-Run **one** API on `:3000` (web proxies `/api` → that origin — same-origin cookies):
-
-```bash
-# Node
-pnpm --filter @repo/api dev
-
-# OR Python (stamp if Prisma already migrated the schema)
-pnpm --filter @repo/api-python db:stamp
-pnpm --filter @repo/api-python dev
-
-# Web
-pnpm --filter @repo/web dev
-```
-
-- Web: `http://localhost:5173`
-- API: `http://localhost:3000` (`GET /api/v1/health`)
-
-After changing apps/packages/root config: `pnpm templates:sync` (CI runs `templates:check`).
 
 ## Apps & packages
 
@@ -106,6 +120,7 @@ After changing apps/packages/root config: `pnpm templates:sync` (CI runs `templa
 | `packages/auth` | Cookie client, forms, guards, axe smoke |
 | `packages/create-app` | Published as `create-app-start` (`npx` / `pnpm create-app`) |
 | `templates/*` | Folded copies for the generator |
+| `.cursor/agents/` | One-purpose subagents for parallel work |
 
 ## Scripts
 
@@ -116,43 +131,20 @@ After changing apps/packages/root config: `pnpm templates:sync` (CI runs `templa
 | `pnpm templates:sync` / `templates:check` | Rewrite / verify `templates/` vs working tree |
 | `pnpm test:a11y` | axe smoke on auth forms |
 | `pnpm check:contracts` | Zod→JSON Schema drift + Python schema sync |
-| `pnpm format` / `lint` / `typecheck` / `test` / `build` | Turbo pipelines |
 
-## Quality gates (toward ~9)
+After changing apps/packages/root config: `pnpm templates:sync`.
 
-CI (`.github/workflows/ci.yml`):
+## Quality & security
 
-1. Biome format + ESLint (a11y/boundaries) + typecheck  
-2. Vitest with **coverage floors** (contracts/auth **≥80%**; API auth/health floors)  
-3. **axe** smoke on auth forms  
-4. Build (web **without** public sourcemaps)  
-5. **Contract** JSON Schema up to date  
-6. **Templates** in sync with the working tree  
-7. **Generator smoke** — `create-app` for `node` and `fastapi` → install / lint / typecheck / test / build  
-8. Python job: Ruff + mypy + pytest (**80%** floor) + schema sync  
+CI enforces format, lint, typecheck, coverage floors, axe, build (no prod sourcemaps), contract drift, templates sync, generator smoke, and Python Ruff/mypy/pytest.
 
-Cursor rules in `.cursor/rules/` encode FE/BE placement, ApiError, auth cookies, i18n keys, and an explicit **fail rubric**.
-
-## Security defaults
-
-- httpOnly access/refresh cookies — never JS token storage  
-- Same-origin `/api` proxy (dev + prod reverse-proxy pattern)  
-- `/api/v1` only; request-id; auth rate limits; Idempotency-Key on register  
-- RBAC roles `user` \| `admin` (`RequireAuth` / `requireRole`)  
-- Secrets only via env (see `.env.example`)
-
-## Deploy
-
-See [`docs/deploy.md`](docs/deploy.md) for PaaS / docker-compose / ci-only and same-origin `/api` wiring.
+Defaults: httpOnly cookies only; `/api/v1`; request-id; auth rate limits; Idempotency-Key on register; roles `user` \| `admin`. See [`.env.example`](.env.example) and [`docs/deploy.md`](docs/deploy.md).
 
 ## Publish the CLI
 
-From the monorepo (after `pnpm templates:sync`):
-
 ```bash
-pnpm --filter create-app-start pack   # dry-run tarball with bundled templates
+pnpm templates:sync
+pnpm --filter create-app-start pack
 npm login
 pnpm --filter create-app-start publish --access public
 ```
-
-`prepack` builds the CLI and copies `templates/` into the package.

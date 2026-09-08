@@ -1,6 +1,6 @@
 {
   "name": "create-app-start",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Scaffold a production-minded monorepo (Vite React + Fastify or FastAPI)",
   "type": "module",
   "license": "MIT",
@@ -16,6 +16,15 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/M-WRI/create-app-start.git",
+    "directory": "packages/create-app"
+  },
+  "homepage": "https://github.com/M-WRI/create-app-start#readme",
+  "bugs": {
+    "url": "https://github.com/M-WRI/create-app-start/issues"
   },
   "keywords": [
     "create-app",
