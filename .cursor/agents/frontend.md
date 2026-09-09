@@ -32,6 +32,9 @@ Ship UI and client-side wiring only. Keep pages thin; logic in hooks.
 - TanStack Query / Form / Table; React Router; Tailwind + `@repo/ui` tokens
 - i18n keys only; CSP and `sourcemap: false` in production Vite config stay intact
 - Same-origin `/api` proxy — no cross-origin cookie schemes
+- Clear React Query caches on auth identity change (login/logout/refresh user switch) via `@repo/auth` lifecycle helpers
+- Walk `nextCursor` for complete datasets; never export truncated pages as complete
+- Destructive actions require confirmation and ownership-aware APIs
 
 ## Fail rubric (hard)
 

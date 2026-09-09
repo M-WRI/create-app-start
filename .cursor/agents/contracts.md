@@ -18,6 +18,8 @@ Own the shared API/error source of truth so FE and BE can fan out safely.
 - `packages/contracts/**` (Zod/DTOs, ApiError, RBAC types)
 - JSON Schema export / drift (`pnpm contracts:schema`, `check:contracts`)
 - Coordinating new `errorCode` + `errorKey` pairs (signal **i18n** for catalog entries)
+- List/pagination DTOs (`limit`, `cursor`, `nextCursor`, `truncated`) when adding bounded APIs
+- Idempotency operation constants / storage-key helpers when critical POSTs need scoping
 
 ## Do not own
 
@@ -41,6 +43,7 @@ Failed API responses must be:
 - No alternate error envelopes  
 - Regenerate schema after contract changes  
 - Prefer updating contracts **before** apps  
+- After contracts change, remind parent to run **dual-backend** / Python `schema:sync` when the FastAPI track must stay aligned  
 
 ## Fail rubric (hard)
 
@@ -50,4 +53,4 @@ Failed API responses must be:
 
 ## When done
 
-List new/changed types, codes, keys; tell parent to launch **frontend** ∥ **backend**, then **i18n** / **testing** as needed.
+List new/changed types, codes, keys; tell parent to launch **frontend** ∥ **backend**, then **i18n** / **testing** / **dual-backend** as needed.

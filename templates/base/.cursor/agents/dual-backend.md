@@ -19,7 +19,8 @@ Mirror behavior between Fastify and FastAPI so both tracks stay contract-compati
   - `apps/api/**`
   - `apps/api-python/**`
 - Schema sync helpers (`schema:sync`) when contracts/JSON Schema moved
-- Matching status codes, cookies, error codes/keys, Idempotency-Key, RBAC
+- Matching status codes, cookies, error codes/keys, Idempotency-Key semantics, RBAC
+- Matching bounded list continuation (`nextCursor`) and domain integrity behavior when those APIs exist on both tracks
 
 ## Do not own
 

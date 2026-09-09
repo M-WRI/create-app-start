@@ -19,11 +19,20 @@ alwaysApply: false
 - **Refresh** must **consume** the presented refresh and **reissue** the new pair in **one transaction** (single winner under concurrency)
 - Non-atomic multi-step writes that can leave orphan users, dangling sessions, or replay gaps = fail
 
+## Session / client cache isolation
+
+- Login, logout, register, and identity-changing refresh must cancel in-flight queries and clear prior-account private React Query caches
+- Confirmed auth failure after refresh (AuthApiError) must invalidate session UI state; transient network errors must not
+- Reusable `@repo/auth` code must not import app feature modules; use generic cache clear / callbacks
+- Idempotency storage keys must be **operation-scoped** (and account/resource-bound where needed) so register and other critical POSTs cannot collide
+
 ## Idempotency
 
 - `Idempotency-Key` on `POST /api/v1/auth/register` (≤128 chars)
 - Replay is **credential-bound**: same key + same credentials → same success response; same key + different credentials → conflict `ApiError`
 - An idempotency key alone is **not** authentication
+- Invalid present `Idempotency-Key` headers → `BAD_REQUEST` `ApiError` (do not silently drop)
+- Stored replay bodies must be shape-validated; mismatch → `IDEMPOTENCY_CONFLICT` (never 500)
 
 ## RBAC and routes
 

@@ -22,6 +22,9 @@ Trivial one-liner handlers may call a service directly; do not invent empty cont
 - Emit `x-request-id`; redact secrets in logs
 - Global rate limit + stricter limits on login/register
 - Helmet/CSP security headers on responses
+- Configure `trustProxy` deliberately (env-driven); only enable behind a known reverse proxy so client-supplied `X-Forwarded-For` cannot undermine rate limits
+- Bounded list endpoints: deterministic ordering, `limit`, and `nextCursor` continuation; document eventual consistency of multi-page walks
+- Prefer DB constraints / transactional checks for domain integrity under concurrency (do not rely on check-then-insert alone)
 
 ## Dual backends
 

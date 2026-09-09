@@ -32,3 +32,6 @@ Prefer `component/`, `hooks/`, `utils/`, `types/`, `constants/` under each unit 
 - Preserve CSP meta and `sourcemap: false` in production Vite config
 - Same-origin `/api` proxy in dev — do not invent cross-origin cookie setups
 - Axe smoke must stay green on auth forms
+- Clear private React Query caches on login/logout/register/identity-changing refresh (via `@repo/auth` lifecycle — do not import feature keys into auth package)
+- Destructive UI actions (bulk delete / delete-by-key) require confirmation and must call ownership-aware APIs
+- Clients that need complete list datasets must walk `nextCursor` until null; never export a truncated page as complete

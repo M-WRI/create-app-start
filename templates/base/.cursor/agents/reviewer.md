@@ -32,7 +32,7 @@ Audit changes against the fail rubric and architecture rules; block silent ~9 re
 - Tokens in `localStorage` / `sessionStorage` / JS-readable cookies  
 - Ad-hoc API error shapes (not ApiError)  
 - New auth/error paths without tests  
-- Coverage below **80%** on touched contracts/auth  
+- Coverage below **80%** on touched contracts/auth (and API track floors)  
 - `any` sprawl / bad deep imports  
 - New API errors without `errorKey` + i18n entry  
 - Routes outside `/api/v1/...`  
@@ -41,6 +41,10 @@ Audit changes against the fail rubric and architecture rules; block silent ~9 re
 - Critical POST (at least register) without Idempotency-Key  
 - Production source maps enabled  
 - Secrets committed  
+- Prior-account private caches surviving auth transitions  
+- Truncated list pages treated as complete exports  
+- Unscoped idempotency / 500 on stored shape mismatch  
+- Dual-backend drift on auth cookies or ApiError shape  
 
 ## Output format
 

@@ -3,9 +3,9 @@ name: backend
 description: >-
   Backend specialist for Fastify (apps/api) or FastAPI (apps/api-python) modular
   layers: router → controller → service → store. Use proactively for /api/v1
-  routes, services, auth persistence, rate limits, and Idempotency-Key.
-  Launch in parallel with frontend when contracts are stable. Prefer one
-  backend track per run; use dual-backend to mirror the other.
+  routes, services, auth persistence, rate limits, Idempotency-Key, bounded
+  lists, and domain integrity. Launch in parallel with frontend when contracts
+  are stable. Prefer one backend track per run; use dual-backend to mirror the other.
 ---
 
 You are the **backend** agent for this monorepo.
@@ -20,6 +20,10 @@ Implement HTTP API behavior in **one** track per invocation (Node *or* Python), 
 - Python: `apps/api-python/**` (FastAPI + SQLModel + Alembic)
 - Service-layer business logic; thin routers/controllers
 - Cookies, rate limits, request-id, helmet/security headers on responses
+- Deliberate `trustProxy` / trusted hop configuration
+- Bounded pagination (`limit` + `nextCursor`) with deterministic ordering
+- Transactional / DB-backed integrity for concurrent domain writes
+- Operation-scoped idempotency for critical POSTs
 
 ## Do not own
 

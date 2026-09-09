@@ -26,6 +26,12 @@ Treat work as **failed** if any of these apply:
 - Critical POST (at least register) without Idempotency-Key support
 - Production source maps enabled for the web app
 - Secrets committed (only `.env.example` is allowed)
+- Prior-account private React Query / client caches surviving login, logout, register, or identity-changing refresh
+- Bounded list APIs without continuation (`nextCursor` / equivalent) when clients need complete datasets (export/editor/dashboard)
+- Silently treating a truncated page as a complete export or full dataset
+- Destructive bulk/key operations without confirmed user intent + ownership/authz checks
+- Idempotency storage that mixes unrelated operations/accounts (unscoped keys) or returns 500 on stored shape mismatch
+- Dual-backend drift: same contract endpoint with different auth cookie semantics or `ApiError` shape across tracks
 
 ## Coverage scope (explicit)
 
@@ -35,7 +41,7 @@ Floor applies to **lines, statements, functions, and branches ≥ 80%** on:
 |-------|-------------|
 | `@repo/contracts` | Package coverage thresholds |
 | `@repo/auth` | Full package, including hooks, forms, providers, and guards |
-| API auth services | Auth service (+ related lib covered by package thresholds) on the active track(s) |
+| Active API track(s) | Package/service thresholds on the backend track(s) you changed |
 
 Verify with:
 
