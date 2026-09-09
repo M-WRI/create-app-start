@@ -35,7 +35,7 @@ Floor applies to **lines, statements, functions, and branches ≥ 80%** on:
 |-------|-------------|
 | `@repo/contracts` | Package coverage thresholds |
 | `@repo/auth` | Full package, including hooks, forms, providers, and guards |
-| API auth services | Auth service (+ related lib covered by package thresholds) on the active track(s) |
+| Active API track(s) | Package/service thresholds on the backend track(s) you changed |
 
 Verify with:
 
