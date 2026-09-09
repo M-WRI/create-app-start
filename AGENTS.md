@@ -17,6 +17,8 @@ Prefer:
 5. Keep `pnpm check`, `pnpm --filter @repo/api-python test`, and template/generator checks green
 6. Scaffold apps with `pnpm create-readyframe` (uses `INIT_CWD` so the project lands where you ran the command); published CLI is `npx create-readyframe@latest`
 
+Architecture overview (contracts-first modular monolith, layers, dual tracks): [`docs/architecture.md`](docs/architecture.md).
+
 ## Cross-boundary notes
 
 - **Contracts first:** new `errorCode` / `errorKey` / DTOs land in `@repo/contracts` (+ schema export) before API or UI consume them

@@ -4,6 +4,8 @@ Production-minded monorepo starter **and** app generator: Vite React web, dual b
 
 **Repository:** [github.com/M-WRI/readyframe](https://github.com/M-WRI/readyframe)
 
+**Architecture:** contracts-first modular monolith — see [`docs/architecture.md`](docs/architecture.md).
+
 ## Prerequisites
 
 - Node.js **22+** (`.nvmrc`)
@@ -141,7 +143,7 @@ After changing apps/packages/root config: `pnpm templates:sync`.
 
 CI enforces format, lint, typecheck, coverage floors, axe, build (no prod sourcemaps), contract drift, templates sync, generator smoke, and Python Ruff/mypy/pytest.
 
-Defaults: httpOnly cookies only; `/api/v1`; request-id; auth rate limits; Idempotency-Key on register; roles `user` \| `admin`. See [`.env.example`](.env.example) and [`docs/deploy.md`](docs/deploy.md).
+Defaults: httpOnly cookies only; `/api/v1`; request-id; auth rate limits; Idempotency-Key on register; roles `user` \| `admin`. See [`.env.example`](.env.example), [`docs/architecture.md`](docs/architecture.md), and [`docs/deploy.md`](docs/deploy.md).
 
 ## Publish the CLI
 
