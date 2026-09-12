@@ -1,37 +1,131 @@
 ---
-description: Frontend placement, TanStack, and component reuse
-globs: apps/web/**/*.{ts,tsx},packages/ui/**/*.{ts,tsx},packages/auth/**/*.{ts,tsx}
+description: Frontend placement, naming, TanStack, and modularity (apps + packages)
+globs: apps/**/*.{ts,tsx},packages/**/*.{ts,tsx}
 alwaysApply: false
 ---
 
 # Frontend conventions
 
+These rules apply **everywhere** frontend code lives: `apps/web`, `@repo/ui`, `@repo/auth`, and any other package with React/TS UI. Same naming and modularity — no package exceptions.
+
 ## Placement
 
 - Shared atoms/molecules → `@repo/ui`
 - Auth UI/client → `@repo/auth`
-- App shell/routes/providers → `apps/web`
-- Feature-local UI → app or module `components/` (never reverse-import from other features)
+- App shell / routes / providers → `apps/web/src` (flat — **no** `src/app/` folder)
+- Domain UI → `apps/web/src/modules/<moduleName>/` (never `features/`)
+- Never reverse-import across modules
 
-## Forced unit folders
+## Naming (hard)
 
-Prefer `component/`, `hooks/`, `utils/`, `types/`, `constants/` under each unit when the unit has several files. Tiny single-file helpers may stay flat.
+| Kind | Convention | Example |
+|------|------------|---------|
+| **Folders** | camelCase only | `projectCard/`, `createProjectForm/` |
+| **Components** (files) | PascalCase | `ProjectCard.tsx`, `CreateProjectForm.tsx` |
+| **Hooks** (files) | `use` + PascalCase | `useProjectsQuery.ts`, `useDebouncedValue.ts` |
+| **Functions / utils** (files) | camelCase | `computeDashboardStats.ts`, `fetchAllTranslations.ts` |
+
+Do **not** use kebab-case for folders or source files (`project-card`, `use-projects-query` = fail).
+
+## Component categories (hard)
+
+Under each module’s `components/`, group units by kind so they are easy to find:
+
+```
+modules/<moduleName>/components/
+  forms/      # reusable field+submit UI (never only inside a modal file)
+  cards/      # list/summary cards
+  modals/     # dialogs & modals (shell + open state; compose forms)
+  panels/     # page sections / tab bodies
+  tables/     # table/row presentation
+  layouts/    # shell chrome, page containers (when needed)
+```
+
+Add a new category folder only when a clear kind appears (e.g. `charts/`). Do not dump unrelated units at the `components/` root.
+
+Example: `components/forms/createProjectForm/CreateProjectForm.tsx`  
+Example: `components/modals/createProjectModal/CreateProjectModal.tsx`
+
+## Forms vs dialogs (hard)
+
+- **Forms are always their own components** under `components/forms/`
+- Dialogs / modals live under `components/modals/` and **compose** forms — open state, title, shell only
+- Never embed form fields + submit logic only inside a modal file
+- Same form must be reusable outside a dialog (page, drawer, wizard step)
+
+## Multi-step flows (hard)
+
+- Use a shared **`useFlowWizard`** hook + **`FlowWizard`** shell — do not invent one-off wizard state machines per feature
+- Steps are declared as `{ id, validate? }`; **step UI is standalone forms** selected by `wizard.stepId`
+- Feature modules compose flows by wiring forms into the generic wizard — forms stay reusable outside that flow
+- Put finish/submit side effects in `onComplete`, not inside the generic hook
+
+## Unit layout
+
+- Prefer flat units inside a category: `components/cards/projectCard/ProjectCard.tsx`
+- Domain **cards/panels** that look like cards must use `@repo/ui` `Card` (and related slots) — do not reinvent with ad-hoc `unolio-card` / raw bordered divs
+- Add `hooks/`, `utils/`, `types/`, `constants/` **only when that unit has several files**
+- Do **not** wrap every file in an empty `component/` ceremony folder
+- Shared app helpers → `apps/web/src/hooks/`, `utils/`, `types/` (not `src/app/`)
+
+## Modularity
+
+- **Pages** stay thin (routing, layout, compose)
+- **Stateful logic** → hooks (`useX`)
+- **Stateless logic** → utils (pure functions)
+- Extract reusable UI into sibling components; avoid god-panels that own fetch + filter + dialogs + table
 
 ## Stack mandates
 
 - Data: TanStack Query
 - Forms: TanStack Form
 - Tables: TanStack Table
-- Routing: React Router
+- Routing: React Router 7+ with the **route config** API (see below)
 - Styling: Tailwind + `@repo/ui` tokens
 - Copy: i18n keys only (`@repo/i18n` / `react-i18next`)
 
+## Routing (hard)
+
+Use the current React Router route-module API — **not** legacy JSX `<Routes>` / `<Route>` trees or ad-hoc `BrowserRouter` route tables.
+
+Declare routes in a `routes.ts` (or equivalent) via `@react-router/dev/routes`:
+
+```ts
+import {
+  type RouteConfig,
+  route,
+  layout,
+  index,
+  prefix,
+} from "@react-router/dev/routes";
+
+export default [
+  layout("./modules/marketing/layout.tsx", [
+    index("./modules/marketing/pages/homePage/HomePage.tsx"),
+    route("contact", "./modules/marketing/pages/contactPage/ContactPage.tsx"),
+  ]),
+  ...prefix("projects", [
+    index("./modules/projects/pages/projectsPage/ProjectsPage.tsx"),
+    layout("./modules/projects/layouts/projectLayout.tsx", [
+      route(":projectId", "./modules/projects/pages/projectDetailPage/ProjectDetailPage.tsx"),
+      route(":projectId/edit", "./modules/projects/pages/editProjectPage/EditProjectPage.tsx"),
+    ]),
+  ]),
+] satisfies RouteConfig;
+```
+
+- Prefer `layout`, `index`, `route`, and `prefix` composition over nested JSX route trees
+- Route **module file paths** still follow our naming rules (camelCase folders, PascalCase components)
+- Auth gates belong in layout route modules (`RequireAuth` / `requireRole`), not scattered per page
+- Declare routes in `apps/web/src/routes.ts` (SPA: `react-router.config.ts` with `ssr: false`, `appDirectory: "src"`)
+- Do not introduce new JSX `<Routes>` / `<Route>` maps for production routing (tests may mirror the tree via route objects)
+
 ## Quality
 
-- Keep pages thin; logic in hooks/services
+- No business logic in React pages
 - Preserve CSP meta and `sourcemap: false` in production Vite config
 - Same-origin `/api` proxy in dev — do not invent cross-origin cookie setups
 - Axe smoke must stay green on auth forms
-- Clear private React Query caches on login/logout/register/identity-changing refresh (via `@repo/auth` lifecycle — do not import feature keys into auth package)
+- Clear private React Query caches on login/logout/register/identity-changing refresh (via `@repo/auth` lifecycle — do not import module query keys into auth)
 - Destructive UI actions (bulk delete / delete-by-key) require confirmation and must call ownership-aware APIs
 - Clients that need complete list datasets must walk `nextCursor` until null; never export a truncated page as complete
